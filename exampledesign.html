@@ -1,0 +1,4303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shkola AI: Стань разработчиком</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Предотвращаем FOUC */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow-y: auto !important; /* Разрешаем вертикальный скролл */
+        }
+        
+        body.ready {
+            opacity: 1;
+        }
+
+        /* Обновляем стили прелоадера */
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #121212, #1a1a1a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            /* Убираем vh для лучшей поддержки мобильных */
+        }
+
+        .loader {
+            width: 80px; /* Уменьшаем размер на мобильных */
+            height: 80px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        @media (min-width: 768px) {
+            .loader {
+                width: 120px; /* Возвращаем исходный размер для десктопа */
+                height: 120px;
+            }
+        }
+    </style>
+    <script>
+        // Обновляем скрипт загрузки
+        Promise.all([
+            document.fonts.ready,
+            new Promise(resolve => {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', resolve);
+                } else {
+                    resolve();
+                }
+            })
+        ]).then(() => {
+            // Добавляем небольшую задержку для гарантированной загрузки
+            setTimeout(() => {
+                document.body.classList.add('ready');
+                
+                // Увеличиваем время отображения прелоадера
+                setTimeout(() => {
+                    const preloader = document.querySelector('.preloader');
+                    if (preloader) {
+                        preloader.classList.add('hidden');
+                        // Увеличиваем время до полного удаления
+                        setTimeout(() => preloader.remove(), 500);
+                    }
+                }, 1500);
+            }, 100);
+        });
+    </script>
+</head>
+<body>
+
+<!-- Добавляем прелоадер после открывающего тега body -->
+<style>
+    .preloader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .preloader.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .preloader::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, rgba(138, 43, 226, 0.15), transparent);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
+
+    .loader {
+        width: 120px;
+        height: 120px;
+        position: relative;
+        perspective: 1000px;
+    }
+
+    .loader-logo {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        transform-style: preserve-3d;
+        animation: rotate 1.5s ease-out forwards;
+    }
+
+    .loader-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+        opacity: 0;
+        animation: fadeIn 0.3s ease-out 0.2s forwards;
+    }
+
+    @keyframes rotate {
+        0% {
+            transform: rotateX(0deg) rotateY(-45deg) scale(0.3);
+            opacity: 0;
+        }
+        50% {
+            opacity: 0.5;
+        }
+        100% {
+            transform: rotateX(0deg) rotateY(0deg) scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeIn {
+        to { opacity: 1; }
+    }
+
+    .loader-text {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #FDD782;
+        font-family: 'Unbounded', sans-serif;
+        font-size: 16px;
+        white-space: nowrap;
+        opacity: 0;
+        animation: fadeIn 0.3s ease-out 0.4s forwards;
+    }
+</style>
+
+<div class="preloader">
+    <div class="loader">
+        <div class="loader-logo">
+            <img src="https://static.tildacdn.com/tild3630-3930-4837-b431-363832363064/photo.svg" alt="Logo">
+        </div>
+        <div class="loader-text">Загружаем будущее...</div>
+    </div>
+</div>
+
+<!-- Header Section -->
+<style>
+    /* Global Styles */
+    body, html {
+        overflow-x: hidden; /* Ensure horizontal overflow is hidden */
+        /* Remove overflow-y: hidden if present */
+    }
+
+    /* Header Styles */
+    body {
+        font-family: 'Manrope', sans-serif;
+        background-color: #121212;
+        color: #ffffff;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        letter-spacing: -0.03em;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        padding: 5px 20px;
+        background: rgba(26, 26, 26, 0.8);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        border-bottom: 0px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .header:hover {
+        background: rgba(26, 26, 26, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo {
+        width: 85px;
+        padding-top: 5px;
+        height: auto;
+        filter: brightness(0) invert(1);
+        transition: transform 0.3s ease;
+    }
+
+    .logo:hover {
+        transform: scale(1.05);
+    }
+
+    .menu {
+        display: flex;
+        gap: 30px;
+    }
+
+    .menu a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 400;
+        font-family: 'Manrope', sans-serif;
+        letter-spacing: -0.02em;
+        padding: 8px 15px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .menu a::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(45deg, #FDD782, #FB95AB, #8A2BE2);
+        transition: all 0.3s ease;
+        transform: translateX(-50%);
+    }
+
+    .menu a:hover::after {
+        width: 80%;
+    }
+
+    .burger-menu {
+        display: none;
+        font-size: 24px;
+        background: none;
+        border: none;
+        color: #ffffff;
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .burger-menu {
+            display: block;
+        }
+
+        .menu {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 20px;
+            gap: 15px;
+        }
+
+        .menu.active {
+            display: flex;
+        }
+    }
+</style>
+
+<header class="header">
+    <img src="https://static.tildacdn.com/tild3630-3930-4837-b431-363832363064/photo.svg" alt="Логотип" class="logo">
+    <button class="burger-menu" onclick="toggleMenu()">≡</button>
+    <nav class="menu">
+        <a href="#intro">О курсе</a>
+        <a href="#benefits">Преимущества</a>
+        <a href="#course-content">Программа</a>
+        <a href="#prices">Цены</a>
+    </nav>
+</header>
+
+<script>
+    function toggleMenu() {
+        const menu = document.querySelector('.menu');
+        menu.classList.toggle('active');
+    }
+</script>
+
+<!-- Hero Section -->
+<style>
+    .hero-section {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        color: #ffffff;
+        text-align: center;
+        padding: 0;
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    .hero-content {
+        padding: 20px;
+        margin-top: 70px;
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-chips {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .hero-chip {
+        font-size: 14px;
+        padding: 8px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+    }
+
+    .hero-chip:hover {
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .hero-content h1 {
+        font-family: 'Unbounded', sans-serif;
+        font-size: 55px;
+        font-weight: 800;
+        text-transform: uppercase;
+        line-height: 1.2;
+        margin-bottom: 10px;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .hero-content p {
+        font-size: 19px;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 10px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-image {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        margin: -120px auto 0;
+        border-radius: 20px;
+        opacity: 99%;
+        mix-blend-mode:lighten;
+        transition: all 0.5s ease;
+        transform: perspective(1000px) rotateX(5deg);
+    }
+
+    .hero-image:hover {
+        transform: perspective(1000px) rotateX(0deg) translateY(-10px);
+        box-shadow: 0 30px 60px rgba(138, 43, 226, 0.3);
+    }
+
+    /* Специфичные стили для кнопки в hero */
+    .hero-content .cta-button {
+        position: static !important; /* Принудительно отменяем absolute */
+        transform: none !important; /* Отменяем transform */
+        left: auto !important; /* Отменяем позиционирование слев */
+        top: auto !important; /* Отменяем позиционирование сверху */
+        margin-top: 20px;
+        margin-bottom: 40px;
+    }
+
+    .hero-content .cta-button:hover {
+        transform: translateY(-3px) scale(1.02) !important;
+    }
+
+    @media (max-width: 768px) {
+        .hero-content {
+            padding: 20px;
+            margin-top: 0px;
+        }
+
+        .hero-section {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+        padding-top: 50px;
+        display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .hero-content h1 {
+            font-size: 32px;
+        }
+
+        .hero-content p {
+            font-size: 13px;
+        }
+
+        .hero-chips {
+            gap: 10px;
+        }
+
+        .hero-chip {
+            font-size: 11px;
+            padding: 6px 15px;
+        }
+
+        .hero-image {
+            max-width: 90%;
+            margin: -90px auto 0;
+        }
+
+        .hero-content .cta-button {
+            margin-top: 15px;
+            margin-bottom: 30px;
+        }
+    }
+</style>
+<section class="hero-section">
+    <div class="hero-content">
+        <div class="hero-chips">
+            <span class="hero-chip">Онлайн-тренинг</span>
+            <span class="hero-chip">4 недели</span>
+            <span class="hero-chip">Старт 15 декабря</span>
+            <span class="hero-chip">год коммьюнити</span>
+        </div>
+        <h1>ПРОМПТ-<span style="color: rgb(249, 176, 4);">ПРОГРАММИСТ</span></h1>
+        <p>Создавай прибыльные IT-продукты за дни, а не месяцы. AI делает код, ты - даешь ему логику и задачи, а получаешь деньги. Никакого классического программирования. (шутка)</p>
+        <a onclick="bubble_fn_btn(3)"  class="cta-button">Стать создателем продуктов</a>
+    </div>
+    <img src="https://760fb20e6dfc17ff5d4859e27432c8da.cdn.bubble.io/f1730003006220x141992797322370910/image%20%283%29.png" alt="Hero Image" class="hero-image">
+</section>
+<!-- Product Vision Calculator Section -->
+<style>
+    .product-calc {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 80px 0;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .product-calc::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    .product-calc__container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .product-calc__header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .product-calc__title {
+        font-family: 'Unbounded', sans-serif;
+        font-size: 42px;
+        margin-bottom: 20px;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .product-calc__subtitle {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .product-calc__content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .product-calc__params {
+        width: 100%;
+    }
+
+    .product-calc__results {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .product-calc__result {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 30px;
+        text-align: center;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.4s ease;
+    }
+
+    .product-calc__result:hover {
+        transform: translateY(-5px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .product-calc__card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        height: fit-content;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .product-calc__card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .product-calc__card-title {
+        font-size: 24px;
+        color: #FDD782;
+        margin-bottom: 14px;
+        height:min-content;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .product-calc__input-group {
+        margin-bottom: 15px;
+    }
+
+    .product-calc__label {
+        display: block;
+        margin-bottom: 12px;
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+
+    .product-calc__select {
+        width: 100%;
+        padding: 15px;
+        border-radius: 12px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 16px;
+    }
+
+    .product-calc__select:focus {
+        outline: none;
+        border-color: #FDD782;
+        box-shadow: 0 0 0 2px rgba(253, 215, 130, 0.2);
+    }
+
+    .product-calc__select:hover {
+        border-color: rgba(138, 43, 226, 0.5);
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .product-calc__result-title {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 15px;
+    }
+
+    .product-calc__result-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: #FDD782;
+        margin: 20px 0;
+        font-family: 'Unbounded', sans-serif;
+        text-shadow: 0 2px 10px rgba(253, 215, 130, 0.3);
+    }
+
+    .product-calc__features {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-top: 40px;
+    }
+
+    .product-calc__feature {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 15px;
+        padding: 25px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .product-calc__feature:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .product-calc__feature-icon {
+        font-size: 28px;
+        flex-shrink: 0;
+    }
+
+    .product-calc__feature-title {
+        font-size: 18px;
+        color: #FDD782;
+        margin-bottom: 5px;
+    }
+
+    .product-calc__feature-text {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    @media (max-width: 1024px) {
+        .product-calc__features {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .product-calc__content {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .product-calc__results {
+            flex-direction: column !important; /* Принудительно в колонку */
+            gap: 20px;
+        }
+
+        .product-calc__result {
+            width: 100%;
+            flex: none !important; /* Отменяем flex: 1 */
+        }
+
+        .product-calc__features {
+            grid-template-columns: 1fr;
+        }
+
+        .product-calc__feature {
+            padding: 20px;
+        }
+
+        .product-calc__result-value {
+            font-size: 28px;
+        }
+    }
+</style>
+
+<section class="product-calc">
+    <div class="product-calc__container">
+        <div class="product-calc__header">
+            <h2 class="product-calc__title">Оцени свой будущий продукт</h2>
+            <p class="product-calc__subtitle">Узнай, сколько времени и ресурсов потребуется для реализации твоей идеи</p>
+        </div>
+
+        <div class="product-calc__content">
+            <!-- Параметры -->
+            <div class="product-calc__params">
+                <div class="product-calc__card">
+                    <h3 class="product-calc__card-title">Параметры проекта</h3>
+                    <div class="product-calc__input-group">
+                        <label class="product-calc__label">Тип продукта</label>
+                        <select class="product-calc__select" id="calc_productType">
+                            <option value="web">Веб-приложение</option>
+                            <option value="mobile">Мобильное приложение</option>
+                            <option value="automation">Автоматизация процессов</option>
+                            <option value="ai">AI-сервис</option>
+                        </select>
+                    </div>
+                    <div class="product-calc__input-group">
+                        <label class="product-calc__label">Сложность</label>
+                        <select class="product-calc__select" id="calc_complexity">
+                            <option value="simple">Простой (MVP)</option>
+                            <option value="medium">Средний (Базовый функционал)</option>
+                            <option value="complex">Сложный (Полный функционал)</option>
+                        </select>
+                    </div>
+                    <div class="product-calc__input-group">
+                        <label class="product-calc__label">Срочность</label>
+                        <select class="product-calc__select" id="calc_urgency">
+                            <option value="normal">Обычная</option>
+                            <option value="fast">Срочная</option>
+                            <option value="urgent">Супер срочная</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Результаты -->
+            <div class="product-calc__results">
+                <div class="product-calc__result">
+                    <h4 class="product-calc__result-title">Примерное время разработки</h4>
+                    <div class="product-calc__result-value" id="calc_timeResult">2-3 недели</div>
+                    <p>С использованием AI и современных инструментов</p>
+                </div>
+                <div class="product-calc__result">
+                    <h4 class="product-calc__result-title">Традиционная разработка</h4>
+                    <div class="product-calc__result-value" id="calc_traditionalTime">12-18 недель</div>
+                    <p>Классическими методами</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Преимущества -->
+        <div class="product-calc__features">
+            <div class="product-calc__feature">
+                <span class="product-calc__feature-icon">⚡️</span>
+                <div>
+                    <h4 class="product-calc__feature-title">Ускорение разработки</h4>
+                    <p class="product-calc__feature-text">В 5-10 раз быстрее с AI</p>
+                </div>
+            </div>
+            <div class="product-calc__feature">
+                <span class="product-calc__feature-icon">💰</span>
+                <div>
+                    <h4 class="product-calc__feature-title">Экономия бюджета</h4>
+                    <p class="product-calc__feature-text">До 70% экономии</p>
+                </div>
+            </div>
+            <div class="product-calc__feature">
+                <span class="product-calc__feature-icon">🎯</span>
+                <div>
+                    <h4 class="product-calc__feature-title">Точность оценки</h4>
+                    <p class="product-calc__feature-text">90% точность прогнозов</p>
+                </div>
+            </div>
+            <div class="product-calc__feature">
+                <span class="product-calc__feature-icon">🔄</span>
+                <div>
+                    <h4 class="product-calc__feature-title">Гибкость изменений</h4>
+                    <p class="product-calc__feature-text">Быстрое внесение правок</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    function initializeCalculator() {
+        const productType = document.getElementById('calc_productType');
+        const complexity = document.getElementById('calc_complexity');
+        const urgency = document.getElementById('calc_urgency');
+        const timeResult = document.getElementById('calc_timeResult');
+        const traditionalTime = document.getElementById('calc_traditionalTime');
+
+        if (!productType || !complexity || !urgency || !timeResult || !traditionalTime) {
+            console.log('Waiting for elements...');
+            setTimeout(initializeCalculator, 100); // Повторяем попытку через 100мс
+            return;
+        }
+
+        const calculateProjectTime = () => {
+            // Базовое время в неделях
+            let baseTime = 0;
+            let traditionalBaseTime = 0;
+
+            // Определяем базовое время по типу продукта
+            switch(productType.value) {
+                case 'web':
+                    baseTime = 2;
+                    traditionalBaseTime = 12;
+                    break;
+                case 'mobile':
+                    baseTime = 3;
+                    traditionalBaseTime = 16;
+                    break;
+                case 'automation':
+                    baseTime = 1;
+                    traditionalBaseTime = 8;
+                    break;
+                case 'ai':
+                    baseTime = 2;
+                    traditionalBaseTime = 20;
+                    break;
+            }
+
+            // Умножаем на коэффициент сложности
+            switch(complexity.value) {
+                case 'simple':
+                    baseTime *= 1;
+                    traditionalBaseTime *= 1;
+                    break;
+                case 'medium':
+                    baseTime *= 2;
+                    traditionalBaseTime *= 2;
+                    break;
+                case 'complex':
+                    baseTime *= 3;
+                    traditionalBaseTime *= 3;
+                    break;
+            }
+
+            // Применяем коэффициент срочности
+            switch(urgency.value) {
+                case 'normal':
+                    baseTime *= 1;
+                    traditionalBaseTime *= 1;
+                    break;
+                case 'fast':
+                    baseTime *= 0.7;
+                    traditionalBaseTime *= 0.8;
+                    break;
+                case 'urgent':
+                    baseTime *= 0.5;
+                    traditionalBaseTime *= 0.6;
+                    break;
+            }
+
+            // Округляем результаты и добавляем диапазон
+            const minTime = Math.max(1, Math.round(baseTime)); // Минимум 1 неделя
+            const maxTime = Math.round(baseTime * 1.5);
+            const minTradTime = Math.max(4, Math.round(traditionalBaseTime)); // Минимум 4 недели
+            const maxTradTime = Math.round(traditionalBaseTime * 1.5);
+
+            // Обновляем результаты на странице
+            if (timeResult && traditionalTime) {
+                timeResult.textContent = `${minTime}-${maxTime} недель`;
+                traditionalTime.textContent = `${minTradTime}-${maxTradTime} недель`;
+            }
+        };
+
+        // Добавляем слушатели событий с проверкой
+        if (productType) productType.addEventListener('change', calculateProjectTime);
+        if (complexity) complexity.addEventListener('change', calculateProjectTime);
+        if (urgency) urgency.addEventListener('change', calculateProjectTime);
+
+        // Запускаем начальный расчет
+        calculateProjectTime();
+    }
+
+    // Запускаем инициализацию при загрузке документа
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCalculator);
+    } else {
+        initializeCalculator();
+    }
+</script>
+
+<!-- Start of Selection -->
+<style>
+    .cases {
+        background-color: #121212;
+        color: #ffffff;
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cases::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.1), transparent);
+        pointer-events: none;
+    }
+
+    .cases__container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .cases__title {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 60px;
+        text-align: center;
+        font-family: 'Unbounded', sans-serif;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .cases__emoji-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin-bottom: 60px;
+    }
+
+    .cases__emoji-item {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .cases__emoji-item:hover {
+        transform: translateY(-10px) scale(1.02);
+        border-color: rgba(138, 43, 226, 0.5);
+        box-shadow: 0 20px 40px rgba(138, 43, 226, 0.2);
+    }
+
+    .cases__emoji {
+        font-size: 54px;
+        margin-bottom: 20px;
+        text-shadow: 0 2px 10px rgba(255, 204, 0, 0.3);
+    }
+
+    .cases__emoji-text {
+        font-size: 18px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .cases__grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+
+    .cases__card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        position: relative;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .cases__card:hover {
+        transform: translateY(-10px) scale(1.02);
+        border-color: rgba(138, 43, 226, 0.5);
+        box-shadow: 0 20px 40px rgba(138, 43, 226, 0.2);
+    }
+
+    .cases__card-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffcc00;
+        margin-bottom: 20px;
+        text-shadow: 0 2px 10px rgba(255, 204, 0, 0.3);
+    }
+
+    .cases__card-text {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .cases__card-source {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Intro section styles */
+    #intro {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #intro::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 70%, rgba(138, 43, 226, 0.1), transparent);
+        pointer-events: none;
+    }
+
+    #intro .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #intro p {
+        font-size: 24px;
+        line-height: 1.5;
+        margin-bottom: 40px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Manrope', sans-serif;
+        font-weight: 500;
+    }
+
+    .horizontal-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 30px;
+        padding: 20px 0;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        margin: 0 -20px;
+        padding: 20px;
+    }
+
+    .scroll-item {
+        flex: 0 0 400px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 25px;
+        scroll-snap-align: start;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .scroll-item:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .scroll-item h3 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        color: #FDD782;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 600;
+    }
+
+    .video-container {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .video-container video {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .tech-stack {
+        margin-top: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 12px;
+    }
+
+    .tech-stack strong {
+        display: block;
+        margin-bottom: 10px;
+        color: #FDD782;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 600;
+    }
+
+    .tech-stack ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tech-stack li {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Стилизованный скроллбар */
+    .horizontal-scroll::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .cases__card-icon {
+        width: 45px;
+        height: 45px;
+        margin-bottom: 15px;
+        opacity: 0.8;
+    }
+
+    .cases__card-icon:nth-child(1) {
+        animation: rotate1 12s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(2) {
+        animation: rotate2 14s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(3) {
+        animation: rotate3 16s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(4) {
+        animation: rotate4 18s linear infinite;
+    }
+
+    @keyframes rotate1 {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotate2 {
+        from { transform: rotate(90deg); }
+        to { transform: rotate(450deg); }
+    }
+
+    @keyframes rotate3 {
+        from { transform: rotate(180deg); }
+        to { transform: rotate(540deg); }
+    }
+
+    @keyframes rotate4 {
+        from { transform: rotate(270deg); }
+        to { transform: rotate(630deg); }
+    }
+
+    @media (max-width: 768px) {
+        .cases__title {
+            font-size: 32px;
+        }
+
+        .cases__emoji-list {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .cases__grid {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            gap: 20px;
+            padding-bottom: 20px;
+            margin: -20px;
+            padding: 20px;
+        }
+
+        .cases__card {
+            flex: 0 0 85%;
+            scroll-snap-align: start;
+            transform: none !important;
+        }
+
+        .cases__card:hover {
+            transform: translateY(-5px) !important;
+        }
+
+        .cases__emoji-item {
+            padding: 25px;
+        }
+
+        .cases__emoji {
+            font-size: 42px;
+        }
+
+        .cases__emoji-text {
+            font-size: 16px;
+        }
+
+        .cases__card-title {
+            font-size: 20px;
+        }
+
+        .cases__card-text {
+            font-size: 14px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .cases__card {
+            flex: 0 0 90%;
+        }
+
+        .cases__title {
+            font-size: 28px;
+        }
+    }
+</style>
+
+<section class="cases">
+    <div class="cases__container">
+        <h2 class="cases__title">Новая эра в IT: <br>Разработчики 2.0 🚀</h2>
+        
+        <div class="cases__emoji-list">
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">🌍</span>
+                <p class="cases__emoji-text">IT-индустрия переживает ревлюцию! Старые методы разработки уступают место новым супергероям цифрового мира.</p>
+            </div>
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">✨</span>
+                <p class="cases__emoji-text">Рождается новый вид профессионалов — Создатели Продуктов. Они комбинируют креативноть, бизнес-мышление и современные инструменты для создания крутых решений.</p>
+            </div>
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">⚡️</span>
+                <p class="cases__emoji-text">AI + No-Code = Суперсила! То, что раньше занимало месяцы, теперь делается за дни. Представь, сколько можно успеть!</p>
+            </div>
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">💎</span>
+                <p class="cases__emoji-text">Компании ищут тех, кто может быстро создавать работающие продукты. Не важно как — важен результат. И оплата соответствующая!</p>
+            </div>
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">🎯</span>
+                <p class="cases__emoji-text">Время — твоё главное преимущество. Пока другие пишут код, ты уже запускаешь готовый продукт и считаешь прибыль.</p>
+            </div>
+            <div class="cases__emoji-item">
+                <span class="cases__emoji">🤖</span>
+                <p class="cases__emoji-text">Представь: даже тексты на этом сайте написаны ИИ! Технологии уже здесь, и они работают. Пора использовать их на полную!</p>
+            </div>
+            
+        </div>
+        <div class="cases__grid">
+            <div class="cases__card">
+                <svg class="cases__card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <h3 class="cases__card-title">ИИ революционизирует разработку:</h3>
+                <p class="cases__card-text">По прогнозам, 75% предприятий будут использовать ИИ-инструменты для разработки приложений к 2025 году, делая создание продуктов доступным для широкого круга специалистов.</p>
+                <p class="cases__card-source">Источник: Gartner Research, 2023</p>
+            </div>
+            <div class="cases__card">
+                <svg class="cases__card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <h3 class="cases__card-title">Взрывной рост числа создателей продуктов:</h3>
+                <p class="cases__card-text">К 2030 году количество создателей цифровых продуктов достигнет 1,8 миллиарда человек – это четверть активного населения планеты!</p>
+                <p class="cases__card-source">Источник: International Data Corporation (IDC), 2023</p>
+            </div>
+            <div class="cases__card">
+                <svg class="cases__card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <h3 class="cases__card-title">Трансформация IT-индустрии:</h3>
+                <p class="cases__card-text">К 2025 году более 70% новых приложений будут разрабатываться с использованием low-code и ИИ-инструментов, открывая новые возможности для создателей продуктов.</p>
+                <p class="cases__card-source">Источник: Forrester Research, 2023</p>
+            </div>
+            <div class="cases__card">
+                <svg class="cases__card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <h3 class="cases__card-title">Новые возможности в IT:</h3>
+                <p class="cases__card-text">К 2025 году рынок ИИ-инструментов для разработки достигнет $37 млрд, создавая огромные возможности для тех, кто освоит новые технологии.</p>
+                <p class="cases__card-source">Источник: Markets and Markets, 2023</p>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const starIcon = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 512 512">
+                <path fill="none" stroke="#fcd34d" stroke-linecap="round" stroke-linejoin="round" stroke-width="15" d="m105.7 263.5l107.5 29.9a7.9 7.9 0 0 1 5.4 5.4l29.9 107.5a7.8 7.8 0 0 0 15 0l29.9-107.5a7.9 7.9 0 0 1 5.4-5.4l107.5-29.9a7.8 7.8 0 0 0 0-15l-107.5-29.9a7.9 7.9 0 0 1-5.4-5.4l-29.9-107.5a7.8 7.8 0 0 0-15 0l-29.9 107.5a7.9 7.9 0 0 1-5.4 5.4l-107.5 29.9a7.8 7.8 0 0 0 0 15Z">
+                    <animateTransform additive="sum" attributeName="transform" calcMode="spline" dur="6s" keySplines=".42, 0, .58, 1; .42, 0, .58, 1" repeatCount="indefinite" type="rotate" values="-15 256 256; 15 256 256; -15 256 256"/>
+                    <animate attributeName="opacity" dur="6s" values="1; .75; 1; .75; 1; .75; 1"/>
+                </path>
+            </svg>
+        `;
+
+        const starIcons = document.querySelectorAll('.star-icon');
+        starIcons.forEach(icon => {
+            icon.innerHTML = starIcon;
+        });
+    });
+</script>
+
+<!-- ПРМЕРЫ РИЛОЖУХ Section -->
+<style>
+    #intro {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #intro::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 70%, rgba(138, 43, 226, 0.1), transparent);
+        pointer-events: none;
+    }
+
+    #intro .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #intro p {
+        font-size: 24px;
+        line-height: 1.5;
+        margin-bottom: 40px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Manrope', sans-serif;
+        font-weight: 500;
+    }
+
+    .horizontal-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 30px;
+        padding: 20px 0;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        margin: 0 -20px;
+        padding: 20px;
+    }
+
+    .scroll-item {
+        flex: 0 0 400px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 25px;
+        scroll-snap-align: start;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .scroll-item:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .scroll-item h3 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        color: #FDD782;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 600;
+    }
+
+    .video-container {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .video-container video {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .tech-stack {
+        margin-top: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 12px;
+    }
+
+    .tech-stack strong {
+        display: block;
+        margin-bottom: 10px;
+        color: #FDD782;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 600;
+    }
+
+    .tech-stack ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tech-stack li {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Стилизованный скроллбар */
+    .horizontal-scroll::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .cases__card-icon {
+        width: 45px;
+        height: 45px;
+        margin-bottom: 15px;
+        opacity: 0.8;
+    }
+
+    .cases__card-icon:nth-child(1) {
+        animation: rotate1 12s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(2) {
+        animation: rotate2 14s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(3) {
+        animation: rotate3 16s linear infinite;
+    }
+
+    .cases__card-icon:nth-child(4) {
+        animation: rotate4 18s linear infinite;
+    }
+
+    @keyframes rotate1 {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotate2 {
+        from { transform: rotate(90deg); }
+        to { transform: rotate(450deg); }
+    }
+
+    @keyframes rotate3 {
+        from { transform: rotate(180deg); }
+        to { transform: rotate(540deg); }
+    }
+
+    @keyframes rotate4 {
+        from { transform: rotate(270deg); }
+        to { transform: rotate(630deg); }
+    }
+
+    @media (max-width: 768px) {
+        .scroll-item {
+            width: 80%;
+        }
+        
+        .video-container {
+            position: relative;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .video-overlay svg {
+            width: 48px;
+            height: 48px;
+        }
+    }
+</style>
+
+<section id="intro">
+    <div class="container">
+        <p>Представь, что хочешь создать, расскажи об этом ИИ, а затем соедини кусочки пазл вместе. Программирование с ИИ — для находчивых, а не для усидчивых.</p>
+        <p>Посмотри, что люди создавали не написав ни строчки кода:</p>
+        <div class="horizontal-scroll">
+            <div class="scroll-item">
+                <h3>Прмр-разогрев: 3D Игра за 1 минуту</h3>
+                <div class="video-container">
+                    <video src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1727874458057x505206072964317950/sssx.io_1727874447917.mp4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>HTML</li>
+                        <li>CSS</li>
+                        <li>JavaScript</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- New demo card -->
+            <div class="scroll-item">
+                <h3>YouTube клон за 1 промпт</h3>
+                <div class="video-container">
+                    <video src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1729984012041x110508487182896960/saas%20in%201%20prompt.mp4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>v0</li>
+                        <li>bolt.new</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="scroll-item">
+                <h3>Пример 2: Приложение для управления библиотекой.</h3>
+                <div class="video-container">
+                    <video src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1727873650029x126679960777973390/sssx.io_1727867742759%20%281%29.mp4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>React</li>
+                        <li>Node.js</li>
+                        <li>MongoDB</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="scroll-item">
+                <h3>Пример 3: Приложение для редактирования видео.</h3>
+                <div class="video-container">
+                    <video src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1727873605228x230224265137348060/sssx.io_1727873589317.mp4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>Vue.js</li>
+                        <li>Firebase</li>
+                        <li>FFmpeg</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="scroll-item">
+                <h3>Пример 4: 3D Snake Game с GPT-01 моделью и Replit Agent.</h3>
+                <div class="video-container">
+                    <video src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1727874719201x198646287920424700/sssx.io_1727874711896.mp4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>GPT-01</li>
+                        <li>Replit</li>
+                        <li>JavaScript</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="scroll-item">
+                <h3>Пример 5: Тапалка стрелялка с Claude 3.5 Sonnet моделью и bubble.io</h3>
+                <div class="video-container">
+                    <video src="https://b52531da093848e4b7e07d281a93ab82.cdn.bubble.io/f1720890932932x708840782951266800/RPReplay_Final1720890847.MP4" autoplay muted loop playsinline webkit-playsinline></video>
+                </div>
+                <div class="tech-stack">
+                    <strong>Технологии:</strong>
+                    <ul>
+                        <li>Claude 3.5 Sonnet</li>
+                        <li>Bubble.io</li>
+                        <li>JavaScript</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="outro-text" style="text-align: left; max-width: 800px; margin: 40px auto; padding: 0 20px;">
+            <p style="font-size: 24px; color: #FDD782; margin-bottom: 20px;">
+                А теперь представь, что ты можешь наворотить за пару дней! 🚀
+            </p>
+            
+            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 15px; color: rgba(255,255,255,0.9);">
+                Пока другие потеют над кодом как в спортзале, ты будешь лепить приложения быстрее, чем бабушка пирожки.
+            </p>
+            
+            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 15px; color: rgba(255,255,255,0.9);">
+                И компании готовы расхватывать такие <span style="color: #FDD782;">goods</span>, твой кот начнет есть красную икру и только!
+            </p>
+            
+            <p style="font-size: 20px; font-weight: 600; color: #FDD782; margin-top: 25px;">
+                Пропустить такой движ - всё равно что отказаться от биткоина в 2010-м... 
+                <br>
+                <span style="font-size: 22px;">Не будь этим парнем! 😉</span>
+            </p>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const videos = document.querySelectorAll('video');
+
+        videos.forEach(video => {
+            // Add playsinline and webkit-playsinline attributes
+            video.setAttribute('playsinline', '');
+            video.setAttribute('webkit-playsinline', '');
+            
+            // Create a container and overlay for each video
+            const container = video.parentElement;
+            container.style.position = 'relative';
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'video-overlay';
+            overlay.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="white">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            `;
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(5px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                opacity: 1;
+                transition: opacity 0.3s;
+                z-index: 10;
+            `;
+            container.appendChild(overlay);
+
+            // Make both overlay and video clickable
+            const handleClick = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Try to enter fullscreen first
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.mozRequestFullScreen) {
+                    video.mozRequestFullScreen();
+                } else if (video.msRequestFullscreen) {
+                    video.msRequestFullscreen();
+                }
+
+                // Start playing the video
+                video.play();
+                overlay.style.opacity = '0';
+            };
+
+            overlay.addEventListener('click', handleClick);
+            overlay.addEventListener('touchend', handleClick);
+            video.addEventListener('click', handleClick);
+            video.addEventListener('touchend', handleClick);
+
+            // Handle fullscreen change
+            const fullscreenChangeHandler = () => {
+                if (!document.fullscreenElement && 
+                    !document.webkitFullscreenElement && 
+                    !document.mozFullScreenElement && 
+                    !document.msFullscreenElement) {
+                    video.pause();
+                    overlay.style.opacity = '1';
+                }
+            };
+
+            document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('mozfullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('MSFullscreenChange', fullscreenChangeHandler);
+
+            // Handle video end
+            video.addEventListener('ended', () => {
+                overlay.style.opacity = '1';
+            });
+
+            // Prevent default touch behaviors that might interfere
+            container.addEventListener('touchstart', (e) => e.preventDefault());
+            container.addEventListener('touchmove', (e) => e.preventDefault());
+        });
+    });
+</script>
+
+
+
+<!-- Секция "Для кого этот курс" с расширенным описанием -->
+<style>
+    .target-audience {
+        background: #121212;
+        padding: 80px 0;
+        color: #ffffff;
+    }
+
+    .target-audience .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .target-audience h2 {
+        font-family: 'Unbounded', sans-serif;
+        font-size: 42px;
+        margin-bottom: 50px;
+        text-align: center;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .audience-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-top: 40px;
+    }
+
+    .audience-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 30px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .audience-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        border-color: #FDD782;
+    }
+
+    .audience-card h3 {
+        font-size: 20px;
+        color: #FDD782;
+        margin-bottom: 15px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .audience-card p {
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 15px;
+    }
+
+    .audience-card ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .audience-card li {
+        padding-left: 25px;
+        position: relative;
+        margin-bottom: 10px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .audience-card li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #FDD782;
+    }
+
+    @media (max-width: 768px) {
+        .target-audience {
+            padding: 40px 0;
+        }
+
+        .target-audience h2 {
+            font-size: 32px;
+        }
+
+        .audience-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="target-audience">
+    <div class="container">
+        <h2>Для кого этот курс?</h2>
+        <div class="audience-grid">
+            <div class="audience-card">
+                <h3>Разработчики и СТО</h3>
+                <p>Кто хочет упростить и ускорить разработку</p>
+                <ul>
+                    <li>Автоматизация рутинных задач</li>
+                    <li>Ускорение процесса разработки</li>
+                    <li>Повышение эффективности команды</li>
+                </ul>
+            </div>
+
+            <div class="audience-card">
+                <h3>Новички в IT</h3>
+                <p>Кто хочет войти в сферу без опыта программирования</p>
+                <ul>
+                    <li>Быстрый старт в разработке</li>
+                    <li>Понятное обучение с практикой</li>
+                    <li>Реальные проекты в портфолио</li>
+                </ul>
+            </div>
+
+            <div class="audience-card">
+                <h3>Продакт-менеджеры</h3>
+                <p>Желающие лучше понимать техническую сторону</p>
+                <ul>
+                    <li>Эффективная коммуникация с разработчиками</li>
+                    <li>Оценка технической реализуемости</li>
+                    <li>Создание прототипов самостоятельно</li>
+                </ul>
+            </div>
+
+            <div class="audience-card">
+                <h3>Предприниматели</h3>
+                <p>Кто хочет создавать цифровые продукты</p>
+                <ul>
+                    <li>Быстрое тестирование идей</li>
+                    <li>Экономия на разработке</li>
+                    <li>Контроль над продуктом</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- НОВЫЙ ТЫ Section -->
+<style>
+    #benefits {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        color: #ffffff;
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #benefits::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    #benefits .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #benefits h2 {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 50px;
+        text-align: center;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin-top: 30px;
+    }
+
+    .benefit-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        text-align: left;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .benefit-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .benefit-card .emoji {
+        font-size: 48px;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .benefit-card strong {
+        display: block;
+        font-size: 24px;
+        color: #FDD782;
+        margin-bottom: 15px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .benefit-card p {
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .benefit-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0 0 0;
+    }
+
+    .benefit-card ul li {
+        margin-bottom: 10px;
+        width: 100%;
+        padding-left: 25px;
+        position: relative;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .benefit-card ul li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #FDD782;
+    }
+
+    @media (max-width: 1024px) {
+        .benefits-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .benefits-grid {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 20px 0;
+            margin: -20px -20px 0;
+            padding: 20px;
+            gap: 15px;
+        }
+
+        .benefit-card {
+            flex: 0 0 250px;
+            scroll-snap-align: start;
+        }
+
+        #benefits h2 {
+            font-size: 32px;
+        }
+    }
+</style>
+
+<section id="benefits" class="section-container">
+    <div class="container">
+        <h2>Новый ты через 15 дней:</h2>
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <div class="emoji">💰</div>
+                <strong>Доход в валюте</strong>
+                <p>Работай с заказчиками со всего мира, получай оплату в долларах и евро:</p>
+                <ul>
+                    <li>Первые заказы уже во время обучения</li>
+                    <li>доступ к международным биржам</li>
+                    <li>Помощь в поиске первых клиентов</li>
+                    <li>Готовые шаблоны для общения</li>
+                </ul>
+            </div>
+            <div class="benefit-card">
+                <div class="emoji">🚀</div>
+                <strong>Быстрый старт в IT</strong>
+                <p>От новичка до создателя работающих продуктов за 15 дней:</p>
+                <ul>
+                    <li>Без сложного кода и математики</li>
+                    <li>Полные пошаговые инструкции</li>
+                    <li>Практика на реальных проектах</li>
+                    <li>Поддержка опытных менторов</li>
+                </ul>
+            </div>
+            <div class="benefit-card">
+                <div class="emoji">🌍</div>
+                <strong>Работа из любой точки</strong>
+                <p>Создавай продукты и зарабатывай независимо от геолокации:</p>
+                <ul>
+                    <li>Удаленная работа с клиентами</li>
+                    <li>Доступные способы оплаты</li>
+                    <li>Легальное оформление</li>
+                    <li>Помощь с документами</li>
+                </ul>
+            </div>
+            <div class="benefit-card">
+                <div class="emoji">🤝</div>
+                <strong>Сильное комьюнити</strong>
+                <p>Стань частью сообщества успешных разработчиков:</p>
+                <ul>
+                    <li>Закрытый Telegram-чат</li>
+                    <li>Обмен опытом и контактами</li>
+                    <li>Совместные проекты</li>
+                    <li>Рекомендации и поддержка</li>
+                </ul>
+            </div>
+            <div class="benefit-card">
+                <div class="emoji">📈</div>
+                <strong>Реальные перспективы</strong>
+                <p>Строй свое будущее в технологиях:</p>
+                <ul>
+                    <li>От $1000 за первый проект</li>
+                    <li>Возможность масштабировать доход</li>
+                    <li>Создание пассивного дохода</li>
+                    <li>Свой продуктовый бизнес</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Add hover effect to benefit cards
+    document.querySelectorAll('.benefits-grid .course-section').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-10px)';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+
+<!-- ЧТО ТЫ ПОЛУЧИШЬ Section -->
+<style>
+    #what-you-get {
+        background-color: #121212;
+        color: #ffffff;
+        padding: 80px 0;
+    }
+
+    #what-you-get .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        text-align: center;
+    }
+
+    #what-you-get h2 {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 40px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 2fr);
+        gap: 2rem;
+        padding: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+        .card-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        border-radius: 10px;
+        padding: 30px;
+        border: 1px solid white;
+        text-align: center;
+        transition: transform 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .star-icon {
+        width: 50px;
+        height: 50px;
+        margin: 0 auto 20px;
+    }
+
+    .card strong {
+        display: block;
+        font-size: 22px;
+        color: #ffcc00;
+        margin-bottom: 15px;
+    }
+
+    .card p {
+        font-size: 16px;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    @media (max-width: 768px) {
+        #what-you-get {
+            padding: 60px 0;
+        }
+
+        #what-you-get h2 {
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+        .card-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .card {
+            padding: 20px;
+        }
+
+        .card strong {
+            font-size: 20px;
+        }
+
+        .card p {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<script>
+    // Ensure no JavaScript is preventing scroll
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check for any event listeners that might prevent default scroll behavior
+    });
+</script>
+<!-- Course Content Section -->
+<style>
+    #course-content {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        color: #ffffff;
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #course-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    #course-content .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #course-content h2 {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 50px;
+        text-align: center;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .course-content-wrapper {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+
+    .course-section {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .course-section:hover {
+        transform: translateY(-5px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .course-section.locked {
+        position: relative;
+        filter: blur(1px);
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .course-section.locked::after {
+        content: '🔒';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 48px;
+        filter: blur(0); /* Убираем блюр с замка */
+        text-shadow: 0 0 20px rgba(253, 215, 130, 0.5);
+        opacity: 1;
+    }
+
+    .course-section.locked:hover {
+        transform: none;
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+    }
+
+    .course-section.bonus {
+        background: linear-gradient(45deg, rgba(138, 43, 226, 0.1), rgba(253, 215, 130, 0.1));
+        border: 2px solid rgba(253, 215, 130, 0.3);
+    }
+
+    .course-section h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #FDD782;
+        margin-bottom: 25px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .course-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .course-section li {
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 15px;
+        padding-left: 30px;
+        position: relative;
+    }
+
+    .course-section li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #FDD782;
+        font-weight: bold;
+    }
+
+    .course-section.active {
+        border-color: #FDD782;
+        box-shadow: 0 0 30px rgba(253, 215, 130, 0.2);
+    }
+
+    @media (max-width: 768px) {
+        .course-content-wrapper {
+            grid-template-columns: 1fr;
+        }
+
+        .course-section {
+            padding: 25px;
+        }
+
+        .course-section h3 {
+            font-size: 20px;
+        }
+
+        .course-section li {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<section id="course-content" class="section-container">
+    <div class="container">
+        <h2>Прорамма курса</h2>
+        <div class="course-content-wrapper">
+            <div class="course-section active">
+                <h3>Раздел 0: Идеология разработки нового времени</h3>
+                <ul>
+                    <li>Как ИИ + креатив + NoCode меняют индустрию и твою жизнь.</li>
+                    <li>Обзор всего технологического ландшафта и как стать частью новой волны создателей продуктов.</li>
+                    <li>Принципы программирования с помощью AI-ассистентов.</li>
+                    <li>Примеры успешных проектов, созданных с помощью ИИ.</li>
+                    <li>Создаем ваше первое приложение за 20 минут и на облако его!.</li>
+
+                </ul>
+            </div>
+            <div class="course-section active">
+                <h3>
+                    🛠 Знакомство с инструментами
+                </h3>
+            
+                <ul>
+                    <li>Cursor и VS Code: твои новые лучшие друзья в мире кода</li>
+                    <li>Tab, Chat, Cmd+K - звучит как заклинание, работает как магия!</li>
+                    <li>Markdown - не просто разметка, а твой секретный помощник</li>
+                    <li>Промпт-файлы: научи AI говорить на твоём языке</li>
+                </ul>
+                <style>
+                    .meme-icon {
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-family: 'Unbounded', sans-serif;
+                        margin-left: 10px;
+                        margin-top: 55px;
+                        padding: 15px 22px;
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 4px;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .meme-icon:hover {
+                        background: rgba(255,255,255,0.2);
+                    }
+
+                    .meme-popup {
+                        display: none;
+                        position: relative;
+                        z-index: 1000;
+                        background: rgba(0,0,0,0.9);
+                        padding: 10px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                    }
+
+                    .meme-image {
+                        max-width: 600px;
+                        border-radius: 4px;
+                    }
+
+                    .meme-icon:hover + .meme-popup,
+                    .meme-popup:hover {
+                        display: block;
+                        margin-top: 40px;
+                    }
+                </style>
+                <span class="meme-icon" title="Нажми, чтобы увидеть мем">
+                    🖼️ Мем который мы заслужили
+                </span>
+        
+            <div class="meme-popup">
+                <img src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1730005505782x225741499676316060/photo_2024-10-26_22-26-04.jpg" alt="Мем про инструменты" class="meme-image">
+            </div>
+            </div>
+            <div class="course-section active">
+                <h3>🚀 Технологический стек</h3>
+                <ul>
+                    <li>Next.js + Tailwind + shadcn = красота без боли</li>
+                    <li>База данных: Postgres, Supabase, Drizzle (никакой магии, только удовольствие)</li>
+                    <li>Vercel: деплой быстрее, чем ты произнесёшь "деплой"</li>
+                    <li>Stripe и Clerk: деньги и безопасность - наше всё!</li>
+                    <li>AI-тусовка: Perplexity, Phind, NotebookLM и другие умные ебята</li>
+                </ul>
+            </div>
+            <div class="course-section active">
+                <h3>🏗 Строим первое приложение</h3>
+                <ul>
+                    <li>GitHub: твой первый репозиторий (и это не страшно)</li>
+                    <li>Env-переменне: секреты, которые можно хранить у всех на виду</li>
+                    <li>База данных на Supabase: проще, чем завести котика</li>
+                    <li>Аутентификация через Clerk: потому что "admin/admin" - это прошлый век</li>
+                    <li>Stripe: научим принимать деньги (легально, конечно же!)</li>
+                </ul>
+            </div>
+            <div class="course-section bonus active">
+                <h3>🎨 Делаем красиво и работает</h3>
+                <ul>
+                    <li>Струкура кода: чтобы и через год было не стыдно</li>
+                    <li>Drizzle: SQL с человеческим лицом</li>
+                    <li>Фронтнд: создаём интерфейс мечты</li>
+                    <li>Платёжка: чтобы денежки капали красиво</li>
+                    <li>AI Workflows: автоматизируем всё, что движется</li>
+                </ul>
+            </div>
+            <div class="course-section bonus active">
+                <h3>🎁 Бонусы и плюшки</h3>
+                <ul>
+                    <li>Telegram-боты: научим их быть умне Siri</li>
+                    <li>Мобильные приложения: потому что будущее в кармане</li>
+                    <li>Chrome-расширения: взломаем... в смысле, улучшим браузер</li>
+                    <li>Дополнительные AI-игрушки: Replit, Bolt, Bubble и другие вкусности</li>
+                </ul>
+            </div>
+            <div class="course-section active">
+                <h3>Серия вебинаров: Монетизация и продвижение</h3>
+                <ul>
+                    <li>Как находить клиентов на фрилансе в нных реалиях</li>
+                    <li>Способы получения оплаты из-за рубежа (легально и безопасно)</li>
+                    <li>Упаковка проектов для портфолио, которая продаёт</li>
+                    <li>Работа с заказчиками: от брифа до сдачи проекта</li>
+                    <li>Как правильно оценивать стоимость своей работы</li>
+    
+                </ul>
+            </div>
+            <div class="course-section locked">
+                <h3>Неделя 4: Создание продуктового бизнеса</h3>
+                <ul>
+                    <li>Поиск идей для SaaS-проектов с помощью ИИ</li>
+                    <li>Валидация идеи и быстрое создание MVP</li>
+                    <li>Подключение платёжных систем (в том числе для РФ)</li>
+                    <li>Автоматизация поддержки клиентов через ИИ</li>
+                    <li>Масштабирование проекта и привлечение инвестиций</li>
+                    <li>Практика: запускаем свой первый SaaS-проект</li>
+                </ul>
+            </div>
+            <div class="course-section locked">
+                <h3>🌟 Бонусный модуль: Сообщество и нетворкинг</h3>
+                <ul>
+                    <li>Доступ к закрытому Telegram-чату выпускников</li>
+                    <li>Еженедельные мастермайнды с успешными выпускниками</li>
+                    <li>База знаний с готовыми промптами и шаблонами</li>
+                    <li>Разбор реальных кейсов и помощь с проектами</li>
+                    <li>Нетворкинг и совместные проекты с участниками</li>
+                    <li>Рекомендации по трудоустройству и фрилансу</li>
+                </ul>
+            </div>
+            <div class="course-section active">
+                <h3>💎 Специальный модуль: Инструменты для бизнеса</h3>
+                <ul>
+                    <li>Автоматизация бизнес-процессов с помощью ИИ</li>
+                    <li>Создание чат-ботов для поддержки клиентов</li>
+                    <li>Интеграция CRM-систем и автоматизация продаж</li>
+                    <li>Аналитические дашборды для принятия решений</li>
+                    <li>Оптиизация расходов с помощью автоматизации</li>
+                    <li>Практика: внедряем ИИ в существующий бизнес</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Add smooth scrolling for the horizontal scroll
+    document.addEventListener('DOMContentLoaded', () => {
+        const scrollContainer = document.querySelector('.course-content-wrapper');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        scrollContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - scrollContainer.offsetLeft;
+            scrollLeft = scrollContainer.scrollLeft;
+        });
+
+        scrollContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+        });
+
+        scrollContainer.addEventListener('mouseup', () => {
+            isDown = false;
+        });
+
+        scrollContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - scrollContainer.offsetLeft;
+            const walk = (x - startX) * 2;
+            scrollContainer.scrollLeft = scrollLeft - walk;
+        });
+    });
+</script>
+
+<!-- AI Creation Section -->
+<style>
+    #ai-creation {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        color: #ffffff;
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #ai-creation::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    #ai-creation .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+        text-align: center;
+    }
+
+    .ai-creation-title {
+        font-size: 52px;
+        font-weight: 800;
+        margin-bottom: 30px;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .ai-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin: 50px 0;
+    }
+
+    .ai-stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 30px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .ai-stat-card:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.5);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-number {
+        font-size: 48px;
+        font-weight: 800;
+        color: #FDD782;
+        margin-bottom: 15px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .stat-text {
+        font-size: 18px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-highlight {
+        font-size: 24px;
+        line-height: 1.6;
+        margin: 40px auto;
+        max-width: 800px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-proof {
+        display: inline-block;
+        margin-top: 30px;
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .ai-proof:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
+
+    @media (max-width: 768px) {
+        .ai-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .ai-creation-title {
+            font-size: 32px;
+        }
+    }
+</style>
+
+<section id="ai-creation">
+    <div class="container">
+        <h2 class="ai-creation-title">Этот сайт полностью создан Нейросетью Claude 3.5 new 🤖</h2>
+        
+        <div class="ai-stats-grid">
+            <div class="ai-stat-card">
+                <div class="stat-number">700+</div>
+                <div class="stat-text">промптов использовано для создания этой страницы</div>
+            </div>
+            <div class="ai-stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-text">часов от идеи до полностью работающего сайта</div>
+            </div>
+            <div class="ai-stat-card">
+                <div class="stat-number"><300</div>
+                <div class="stat-text">строк кода написано вручную</div>
+            </div>
+        </div>
+
+        <p class="ai-highlight">
+            Каждый элемент, который ты видишь — от анимаций до адаптивного дизайна — создан с помощью ИИ. 
+            Даже этот текст написан Claude 3.5 new! 🎯
+        </p>
+
+        <!-- <div class="ai-proof">
+            Нажми, чтобы увидеть процесс создания 👀
+            <video width="100%" style="display: none; margin-top: 20px; border-radius: 10px;" controls>
+                <source src="URL_TO_YOUR_VIDEO" type="video/mp4">
+            </video>
+        </div> -->
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials">
+    <div class="testimonials-container">
+        <h2 class="testimonials-title">Отзывы наших выпускников</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">💻</div>
+                    <div class="testimonial-info">
+                        <h3>Александр К.</h3>
+                        <p>Бывший менеджер по продажам</p>
+                    </div>
+                </div>
+                <div class="testimonial-text">
+                    "Думал, что в 35 лет поздно идти в IT. Но уже через неделю создал первое приложение с помощью ИИ. Теперь у меня стабильный доход от зарубежных заказов, и я работаю из любой точки мира!"
+                </div>
+                <div class="testimonial-result">
+                    Результат: $2,500/мес через 2 месяца после курса
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">🎨</div>
+                    <div class="testimonial-info">
+                        <h3>Мария Д.</h3>
+                        <p>Digital-маркетолог</p>
+                    </div>
+                </div>
+                <div class="testimonial-text">
+                    "За 2 недели создала приложение для автоматизации работы с клиентами. Теперь продаю его как SaaS-решение друим маркетологам. ИИ делает 90% работы, я только настраиваю и продаю!"
+                </div>
+                <div class="testimonial-result">
+                    Результат: Пассивный доход $1,800/мес с продукта
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">🚀</div>
+                    <div class="testimonial-info">
+                        <h3>Дмитрий В.</h3>
+                        <p>Предприниматель</p>
+                    </div>
+                </div>
+                <div class="testimonial-text">
+                    "Автоматизовал свой бинес с помощью ИИ-ассистентов. Сократил расходы на 40% и увеличил прибыль. Теперь создаю подобные решения для других компаний."
+                </div>
+                <div class="testimonial-result">
+                    Результат: Экономия $5,000/мес + новый поток клиентов
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">🎯</div>
+                    <div class="testimonial-info">
+                        <h3>Анна М.</h3>
+                        <p>Начинающий разработчик</p>
+                    </div>
+                </div>
+                <div class="testimonial-text">
+                    "Без опыта в программировании создала 3 проекта за месяц. Получила первый заказ еще во время обучения. ИИ помогает писать код, я фокусируюсь на креативе и общении с клиентами."
+                </div>
+                <div class="testimonial-result">
+                    Результат: Первые $1,200 за второй месяц работы
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .testimonials {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 80px 0;
+        display: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .testimonials::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    .testimonials-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .testimonials-title {
+        font-size: 42px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 50px;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+
+    .testimonial-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .testimonial-card:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .testimonial-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+        gap: 20px;
+    }
+
+    .testimonial-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        background: linear-gradient(45deg, rgba(138, 43, 226, 0.2), rgba(253, 215, 130, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .testimonial-card:hover .testimonial-avatar {
+        transform: scale(1.1) rotate(10deg);
+        border-color: rgba(253, 215, 130, 0.3);
+    }
+
+    .testimonial-info h3 {
+        font-size: 22px;
+        color: #FDD782;
+        margin-bottom: 5px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .testimonial-info p {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+    }
+
+    .testimonial-text {
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 25px;
+        font-style: italic;
+        position: relative;
+    }
+
+    .testimonial-text::before,
+    .testimonial-text::after {
+        content: '"';
+        color: rgba(253, 215, 130, 0.3);
+        font-size: 48px;
+        font-family: 'Unbounded', sans-serif;
+        position: absolute;
+    }
+
+    .testimonial-text::before {
+        left: -15px;
+        top: -15px;
+    }
+
+    .testimonial-text::after {
+        right: -15px;
+        bottom: -35px;
+    }
+
+    .testimonial-result {
+        font-size: 15px;
+        color: #FDD782;
+        font-weight: 600;
+        padding: 12px 20px;
+        background: rgba(253, 215, 130, 0.1);
+        border-radius: 10px;
+        display: inline-block;
+    }
+
+    @media (max-width: 1024px) {
+        .testimonials-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .testimonials-title {
+            font-size: 32px;
+        }
+
+        .testimonial-card {
+            padding: 25px;
+        }
+
+        .testimonial-text {
+            font-size: 15px;
+        }
+
+        .testimonial-avatar {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+        }
+    }
+</style>
+<!-- Pricing Section -->
+<style>
+.pricing-section {
+    background: linear-gradient(135deg, #121212, #1a1a1a);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.pricing-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+    pointer-events: none;
+}
+
+.pricing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.pricing-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pricing-card:hover {
+    transform: translateY(-10px);
+    border-color: rgba(138, 43, 226, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.pricing-header {
+    margin-bottom: 30px;
+}
+
+.pricing-title {
+    font-size: 42px;
+    color: #FDD782;
+    margin-bottom: 20px;
+    font-family: 'Unbounded', sans-serif;
+}
+
+.pricing-subtitle {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
+.pricing-options {
+    display: flex;
+    justify-content: space-around;
+    gap: 30px;
+    margin: 40px 0;
+}
+
+.price-option {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 15px;
+    flex: 1;
+    transition: all 0.3s ease;
+}
+
+.price-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-5px);
+}
+
+.price-amount {
+    font-size: 36px;
+    color: #FDD782;
+    font-family: 'Unbounded', sans-serif;
+    margin-bottom: 10px;
+}
+
+.price-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+}
+
+.social-proof {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(253, 215, 130, 0.1);
+    border-radius: 12px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.spots-left {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(138, 43, 226, 0.2);
+    border-radius: 8px;
+    color: #FDD782;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+.ccta-button {
+    display: inline-block;
+    padding: 20px 40px;
+    font-size: 18px;
+    margin: 0 auto;
+    background: linear-gradient(45deg, #FF69B4, #FF1493);
+    color: white;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+}
+
+@media (max-width: 768px) {
+    .pricing-options {
+        flex-direction: column;
+    }
+
+    .pricing-title {
+        font-size: 32px;
+    }
+
+    .pricing-subtitle {
+        font-size: 18px;
+    }
+}
+</style>
+
+<section id="prices" class="pricing-section">
+<div class="pricing-container">
+    <div class="pricing-card">
+        <div class="pricing-header">
+            <h2 class="pricing-title">Инвестируй в свой апгрейд 🚀</h2>
+            <p class="pricing-subtitle">
+                Пока другие думают "как это работает?", 
+                ты уже будешь знать "как на этом заработать"
+            </p>
+        </div>
+
+        <div class="pricing-options">
+            <div class="price-option">
+                <div class="price-amount">$690</div>
+                <div class="price-description">
+                    Полный доступ<br>
+                    Единый платёж
+                </div>
+            </div>
+          
+        </div>
+
+        <div class="social-proof">
+            "Я думал, это дорого, пока не заработал первые $2000 через месяц после курса"
+            <br>— Александр, выпускник прошлого потока
+        </div>
+        <div class="cta-button-container">
+            <a onclick="bubble_fn_btn(4)" class="ccta-button">Присоединиться к курсу</a>
+        </div>
+        <div class="spots-left">
+            Осталось 22 места на текущий поток
+        </div>
+    </div>
+</div>
+</section>
+<!-- Course Author Section -->
+<style>
+    #course-author {
+        background-color: #121212;
+        color: #ffffff;
+        padding: 60px 0;
+    }
+
+    #course-author .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        display: flex;
+        align-items: flex-start; /* Изменено с center на flex-start */
+        gap: 40px;
+    }
+
+    #course-author .author-image {
+        flex-shrink: 0;
+        width: 300px;
+        height: 450px;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    #course-author .author-info {
+        flex-grow: 1;
+        text-align: left; /* Добавлено явное выравнивание по левому краю */
+    }
+
+    #course-author h2 {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 30px;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: left; /* Добавлено выравнивание по левому краю */
+    }
+
+    #course-author h3 {
+        font-size: 28px;
+        color: #FDD782;
+        margin-bottom: 20px;
+        text-align: left; /* Добавлено выравнивание по левому краю */
+    }
+
+    #course-author ul {
+        list-style-type: none;
+        padding: 0;
+        text-align: left; /* Добавлено выравнивание по левому краю */
+    }
+
+    #course-author li {
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    #course-author li:before {
+        content: '✦';
+        color: #FDD782;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        #course-author .container {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #course-author .author-image {
+            width: 100%;
+            height: auto;
+            max-width: 300px;
+        }
+
+        #course-author h2 {
+            font-size: 32px;
+            text-align: center; /* На мобильных можно оставить центрирование заголовка */
+        }
+
+        #course-author h3 {
+            font-size: 24px;
+        }
+
+        #course-author li {
+            font-size: 16px;
+        }
+    }
+</style>
+
+<section id="course-author">
+    <div class="container">
+        <img src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1729247436554x484516100573725760/leo%201077x1618.jpg" alt="Леонид Гельвих" class="author-image">
+        <div class="author-info">
+            <h2>Организатор тренинга</h2>
+            <h3>Леонид Гельвих</h3>
+            <ul>
+                <li>Основатель Ноосферы</li>
+                <li>Реализовал промо проект с ИИ для Milka стоимостью $20,000</li>
+                <li>Самый быстрый заказ выполнил за 1 час на $1,000 с помощью Claude</li>
+                <li>Выполнил заказ для Института Парламентаризма Казахстана</li>
+                <li>Ex CTO Alex Villas Group</li>
+                <li>Обучил более 400 человек разработке без кода и 1000+ веб-дизайну</li>
+                <li>Обучается ИИ разработке у преподавателей из США</li>
+                <li>Автор концепции дизайна этого сайта (реализация - Claude 3.5)</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Teachers Section -->
+<style>
+    .teachers {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 60px 0;
+        position: relative;
+    }
+
+    .teachers::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    .teachers-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .teachers-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+
+    .teacher-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .teacher-card:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .teacher-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .teacher-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(253, 215, 130, 0.3);
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .teacher-card:hover .teacher-avatar {
+        transform: scale(1.1);
+        border-color: rgba(253, 215, 130, 0.6);
+        box-shadow: 0 8px 25px rgba(138, 43, 226, 0.3);
+    }
+
+    .teacher-name {
+        font-size: 24px;
+        color: #FDD782;
+        margin-bottom: 5px;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .teacher-role {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .teacher-achievements {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .teacher-achievements li {
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 12px;
+        padding-left: 24px;
+        position: relative;
+    }
+
+    .teacher-achievements li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #FDD782;
+    }
+
+    @media (max-width: 768px) {
+        .teachers-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="teachers">
+    <div class="teachers-container">
+        <div class="teachers-grid">
+            <div class="teacher-card">
+                <div class="teacher-header">
+                    <img src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1730008924722x367697726160928000/nik.jpg" alt="Ник Макфлай" class="teacher-avatar">
+                    <div>
+                        <h3 class="teacher-name">Ник Макфлай</h3>
+                        <p class="teacher-role">AI Development Expert</p>
+                    </div>
+                </div>
+                <ul class="teacher-achievements">
+                    <li>22 года в IT, 5 лет в разработке пользовательских AI-решений</li>
+                    <li>Руководил внедрением AI-решений в 20 компаниях, повысив выручку до 10-50%</li>
+                    <li>Обучил AI 1500+ человек из 33 стран</li>
+                    <li>Привлёк в сообщества 1M+ человек</li>
+                </ul>
+            </div>
+
+            <div class="teacher-card">
+                <div class="teacher-header">
+                    <img src="https://dcea98ebf7d7a892208171f46bba1923.cdn.bubble.io/f1730008920920x226422257197924640/eugene.jpg" alt="Евгений Шилов" class="teacher-avatar">
+                    <div>
+                        <h3 class="teacher-name">Евгений Шилов</h3>
+                        <p class="teacher-role">Product Development Expert</p>
+                    </div>
+                </div>
+                <ul class="teacher-achievements">
+                    <li>15+ лет опыта в разработке продуктов</li>
+                    <li>Создал более 50 успешных digital-проектов</li>
+                    <li>Эксперт по монетизации и масштабированию</li>
+                    <li>Специализируется на быстром запуске MVP</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Course Results Section -->
+<style>
+    #course-results {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        color: #ffffff;
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #course-results::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+    }
+
+    #course-results .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #course-results h2 {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 50px;
+        text-align: center;
+        font-family: 'Unbounded', sans-serif;
+        background: linear-gradient(45deg, #ffffff, #FDD782);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+        margin-bottom: 50px;
+    }
+
+    .result-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 35px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-align: left;
+    }
+
+    .result-card:hover {
+        transform: translateY(-10px);
+        border-color: rgba(138, 43, 226, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .result-card h3 {
+        font-size: 24px;
+        color: #FDD782;
+        margin-bottom: 25px;
+        font-family: 'Unbounded', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        text-align: left;
+    }
+
+    .result-card h3::before {
+        content: attr(data-emoji);
+        font-size: 32px;
+    }
+
+    .result-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        text-align: left;
+    }
+
+    .result-card li {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        padding-left: 28px;
+        position: relative;
+        color: rgba(255, 255, 255, 0.9);
+        text-align: left;
+    }
+
+    .result-card li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #FDD782;
+        font-weight: bold;
+    }
+
+    .cta-button {
+        display: inline-block;
+        padding: 18px 36px;
+        font-size: 18px;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        color: #ffffff;
+        background: linear-gradient(
+            45deg,
+            #8A2BE2,
+            #FB95AB,
+            #FDD782
+        );
+        background-size: 200% 200%;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 25px rgba(138, 43, 226, 0.25);
+        position: relative;
+        overflow: hidden;
+        animation: gradientFlow 8s ease infinite;
+        letter-spacing: 0.5px;
+    }
+
+    .cta-button:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            120deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+        );
+        transition: 0.5s;
+    }
+
+    .cta-button:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 15px 30px rgba(138, 43, 226, 0.4);
+    }
+
+    .cta-button:hover:before {
+        left: 100%;
+    }
+
+    .cta-button:active {
+        transform: translateY(2px);
+        box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    @keyframes gradientFlow {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .cta-button {
+            padding: 16px 32px;
+            font-size: 16px;
+            width: 90%;
+            max-width: 300px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .results-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section id="course-results">
+    <div class="container">
+        <h2>Результат после курса</h2>
+        <div class="results-grid">
+            <div class="result-card">
+                <h3 data-emoji="💼">Готовое портфолио</h3>
+                <ul>
+                    <li>3 реальных проекта с использованием ИИ и NoCode</li>
+                    <li>Рабочие приложения, которые можно показать клиентам</li>
+                    <li>Опыт работы с современными инструментами</li>
+                    <li>Готовые шаблоны для презентации проектов</li>
+                    <li>Профиль на GitHub с открытым кодом</li>
+                </ul>
+            </div>
+            <div class="result-card">
+                <h3 data-emoji="🚀">Навыки будущего</h3>
+                <ul>
+                    <li>Создание MVP за 2-3 дня вместо месяцев</li>
+                    <li>Работа с нейросетями на уровне PRO</li>
+                    <li>Автоматизация рутинных задач</li>
+                    <li>Быстрая разработка на современных платформах</li>
+                    <li>Умение находить оптимальные технические решения</li>
+                </ul>
+            </div>
+            <div class="result-card">
+                <h3 data-emoji="💰">Возможности заработка</h3>
+                <ul>
+                    <li>Готовые каналы поиска первых клиентов</li>
+                    <li>Навыки оценки и продажи своих услуг</li>
+                    <li>Понимание рынка и актуальных ниш</li>
+                    <li>Способы получения оплаты из любой точки мира</li>
+                    <li>Возможность создать свой продуктовый бизнес</li>
+                </ul>
+            </div>
+            <div class="result-card">
+                <h3 data-emoji="🤝">Комьюнити и поддержка</h3>
+                <ul>
+                    <li>Доступ к закрытому сообществу выпускников</li>
+                    <li>Регулярные мастермайнды и разборы проектов</li>
+                    <li>База знаний с готовыми решениями</li>
+                    <li>Нетворкинг с успешными разработчиками</li>
+                    <li>Год поддержки от команды курса</li>
+                </ul>
+            </div>
+        </div>
+        <div class="bottom-decoration-wrapper">
+            <img 
+                src="https://www.krea.ai/api/img?f=webp&i=https%3A%2F%2Ftest1-emgndhaqd0c9h2db.a01.azurefd.net%2Fimages%2F14f2a426-a2cd-405f-8f6f-d6fb60f6543f.png" 
+                alt="Декоративное изображение" 
+                class="bottom-decoration"
+            >
+            <a onclick="bubble_fn_btn(5)" class="cta-button">Оплатить курс</a>
+        </div>
+    </div>
+</section>
+
+<!-- После секции testimonials -->
+<section class="video-gallery">
+    <div class="container">
+        <h2 class="video-gallery-title">К нам идут учиться и заказывают разработку потому что мы действительно обучаем и клиентов и студентов: легкая подача, бодрый настрой, сильное видение будущего и реакция на изменения. Присоединяйся!</h2>
+        <p class="video-gallery-subtitle">Вот тебе плейлист о ноукод подходе. Если Год назад уже так легко можно было строить, то представь, что сейчас!? Теперь ты экономишь еще больше времени.</p>
+        
+        <div class="video-scroll">
+            <div class="video-item">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/cgZf-l_LjII" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <h3>Понять код и войти в Ай-ти</h3>
+            </div>
+            <div class="video-item">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/F7u4XhlDVMo" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <h3>Собираем ИИ ассистента без кода</h3>
+            </div>
+            <div class="video-item">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/6cjJoZpER3Y" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <h3>No-Code: Mini App в телеграм с нуля</h3>
+            </div>
+            <div class="video-item">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/dxyNF8v5Dn4" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <h3>Понимание как работает ИИ Агент</h3>
+            </div>
+
+        </div>
+        
+        <p class="video-gallery-outro">Зачем смотреть? Чтобы уже начать разбираться в основах айти и зайти на курс подготовленным.</p>
+    </div>
+</section>
+
+<style>
+.video-gallery {
+    background: linear-gradient(135deg, #121212, #1a1a1a);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.video-gallery::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.15), transparent);
+    pointer-events: none;
+}
+
+.video-gallery .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.video-gallery-title {
+    font-size: 32px;
+    color: #FDD782;
+    margin-bottom: 20px;
+    font-family: 'Unbounded', sans-serif;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.video-gallery-subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.video-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 30px;
+    padding: 20px 0;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+.video-scroll::-webkit-scrollbar {
+    height: 8px;
+}
+
+.video-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.video-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.video-item {
+    flex: 0 0 400px;
+    scroll-snap-align: start;
+}
+
+.video-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+}
+
+.video-item h3 {
+    font-size: 18px;
+    color: #ffffff;
+    margin-top: 15px;
+    font-weight: 500;
+}
+
+.video-gallery-outro {
+    font-size: 20px;
+    color: #FDD782;
+    text-align: center;
+    margin-top: 40px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .video-gallery-title {
+        font-size: 24px;
+    }
+    
+    .video-gallery-subtitle {
+        font-size: 16px;
+    }
+    
+    .video-item {
+        flex: 0 0 300px;
+    }
+}
+</style>
+
+<style>
+    .bottom-decoration-wrapper {
+        position: relative;
+        margin-top: 60px;
+        text-align: center;
+    }
+
+    .bottom-decoration {
+        width: 100%;
+        max-width: 800px;
+        height: auto;
+        display: block;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        margin: 0 auto;
+    }
+
+    .cta-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        white-space: nowrap;
+        padding: 18px 36px;
+        font-size: 18px;
+        font-weight: 600;
+        text-decoration: none;
+        color: #ffffff;
+        background: linear-gradient(45deg, #8A2BE2, #FB95AB, #FDD782);
+        background-size: 200% 200%;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 25px rgba(138, 43, 226, 0.25);
+        animation: gradientFlow 8s ease infinite;
+    }
+
+    .cta-button:hover {
+        transform: translate(-50%, -50%) scale(1.05);
+        box-shadow: 0 15px 30px rgba(138, 43, 226, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .bottom-decoration {
+            max-width: 90%;
+        }
+
+        .cta-button {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+    }
+</style>
+<!-- Fun Ending Section -->
+<style>
+    .fun-ending {
+        background: linear-gradient(135deg, #121212, #1a1a1a);
+        padding: 100px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .scroll-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        position: relative;
+        text-align: center;
+    }
+
+    .scroll-image {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        position: relative;
+        opacity: 0;
+        transform: translateY(100px);
+        transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 30px;
+        box-shadow: 0 0 30px rgba(138, 43, 226, 0.3);
+        filter: drop-shadow(0 0 20px rgba(253, 215, 130, 0.2));
+    }
+
+    .scroll-image.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .scroll-text {
+        position: absolute;
+        font-size: 32px;
+        font-family: 'Unbounded', sans-serif;
+        color: #ffffff;
+        text-align: center;
+        max-width: 800px;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.5s ease;
+        z-index: 2;
+    }
+
+    .scroll-text.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .final-offer {
+        background: linear-gradient(45deg, rgba(138, 43, 226, 0.1), rgba(253, 215, 130, 0.1));
+        padding: 60px 40px;
+        border-radius: 30px;
+        text-align: center;
+        margin: 50px auto;
+        max-width: 900px;
+        border: 2px solid rgba(253, 215, 130, 0.2);
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.5s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .final-offer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, rgba(138, 43, 226, 0.15), transparent);
+        pointer-events: none;
+        animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
+
+    .final-offer.visible {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .final-offer h2 {
+        font-size: 42px;
+        color: #FDD782;
+        margin-bottom: 20px;
+        font-family: 'Unbounded', sans-serif;
+        text-shadow: 0 2px 10px rgba(253, 215, 130, 0.3);
+        position: relative;
+        z-index: 2;
+    }
+
+    .final-offer h3 {
+        font-size: 36px;
+        color: #ffffff;
+        margin-bottom: 40px;
+        text-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
+        position: relative;
+        z-index: 2;
+    }
+
+    .final-offer img {
+        max-width: 700px;
+        width: 100%;
+        margin: 40px auto;
+        border-radius: 25px;
+        display: block;
+        box-shadow: 0 15px 40px rgba(138, 43, 226, 0.3);
+        transform: perspective(1000px) rotateX(5deg);
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 2;
+    }
+
+    .final-offer img:hover {
+        transform: perspective(1000px) rotateX(0deg) translateY(-10px);
+        box-shadow: 0 25px 50px rgba(138, 43, 226, 0.4);
+    }
+
+    .final-offer .cta-button {
+        position: relative;
+        transform: none;
+        margin: 20px auto 0;
+        left: auto;
+        top: auto;
+        padding: 20px 40px;
+        font-size: 20px;
+        z-index: 2;
+        background: linear-gradient(45deg, #8A2BE2, #FB95AB, #FDD782);
+        background-size: 200% 200%;
+        animation: gradientFlow 8s ease infinite;
+    }
+
+    .final-offer .cta-button:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 20px 40px rgba(138, 43, 226, 0.4);
+    }
+
+    .price-tag {
+        background: rgba(253, 215, 130, 0.1);
+        padding: 15px 30px;
+        border-radius: 15px;
+        display: inline-block;
+        margin: 20px 0;
+        border: 2px solid rgba(253, 215, 130, 0.2);
+        position: relative;
+        z-index: 2;
+    }
+
+    .price-tag .old-price {
+        text-decoration: line-through;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 24px;
+        margin-right: 15px;
+    }
+
+    .price-tag .new-price {
+        color: #FDD782;
+        font-size: 32px;
+        font-weight: bold;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .sparkles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .sparkle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background-color: rgba(253, 215, 130, 0.6);
+        animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @keyframes sparkle {
+        0% { transform: scale(0) rotate(0deg); opacity: 0; }
+        50% { transform: scale(1) rotate(180deg); opacity: 1; }
+        100% { transform: scale(0) rotate(360deg); opacity: 0; }
+    }
+
+    @media (max-width: 768px) {
+        .final-offer {
+            padding: 30px 20px;
+            margin: 20px;
+        }
+
+        .final-offer h2 {
+            font-size: 28px;
+        }
+
+        .final-offer h3 {
+            font-size: 24px;
+        }
+
+        .price-tag {
+            padding: 10px 20px;
+        }
+
+        .price-tag .old-price {
+            font-size: 20px;
+        }
+
+        .price-tag .new-price {
+            font-size: 26px;
+        }
+
+        .final-offer .cta-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            width: 90%;
+            max-width: 300px;
+        }
+    }
+</style>
+
+<section class="fun-ending">
+    <div class="scroll-section">
+        <p class="scroll-text">Все, тут сайт закончился. Дальше ничего нет 😌</p>
+        <img src="https://www.krea.ai/api/img?f=webp&i=https%3A%2F%2Ftest1-emgndhaqd0c9h2db.a01.azurefd.net%2Fimages%2F3f1d7fd6-23fb-40ab-a114-14755ddef82b.png" 
+            alt="Расслабленные булки" 
+            class="scroll-image">
+    </div>
+
+    <div class="scroll-section">
+        <p class="scroll-text">Ну все, зачем ты листаешь дальше? Расслабь булки! 🧘‍♂️</p>
+        <img src="https://www.krea.ai/api/img?f=webp&i=https%3A%2F%2Ftest1-emgndhaqd0c9h2db.a01.azurefd.net%2Fimages%2F6d7a9977-d80c-4b79-b180-7b94fbf852dc.png" 
+            alt="Расслабленные булки снова" 
+            class="scroll-image">
+    </div>
+
+    <div class="scroll-section">
+        <p class="scroll-text">Даже роботы уже на чилле 🤖</p>
+        <img src="https://www.krea.ai/api/img?f=webp&i=https%3A%2F%2Ftest1-emgndhaqd0c9h2db.a01.azurefd.net%2Fimages%2Fc8f65627-2b48-4241-a5f5-3909f3b9134d.png" 
+            alt="Чилл робот" 
+            class="scroll-image">
+    </div>
+
+    <div class="final-offer">
+        <div class="sparkles"></div>
+        <h2>Ну ты настойчивый! Мы посовещались:</h2>
+        <h3>Минус 300$ только для тебя</h3>
+        
+        <div class="price-tag">
+            <span class="old-price">$990</span>
+            <span class="new-price">$490</span>
+        </div>
+        
+        <img src="https://www.krea.ai/api/img?f=webp&i=https%3A%2F%2Ftest1-emgndhaqd0c9h2db.a01.azurefd.net%2Fimages%2F6e2386bc-f32f-4d76-8e5a-44fd39cf7297.png" 
+            alt="Финальное предложение">
+        <a onclick="bubble_fn_btn(6)" class="cta-button">Хочу эту скидку! 🚀</a>
+    </div>
+</section>
+
+<script>
+    // Intersection Observer для анимаций при скролле
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            } else {
+                entry.target.classList.remove('visible');
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+
+    // Наблюдаем за всеми элементами, которые нужно анимировать
+    document.querySelectorAll('.scroll-image, .scroll-text, .final-offer').forEach((el) => {
+        observer.observe(el);
+    });
+
+    function createSparkles() {
+        const sparklesContainer = document.querySelector('.sparkles');
+        const numberOfSparkles = 20;
+
+        for (let i = 0; i < numberOfSparkles; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = `${Math.random() * 100}%`;
+            sparkle.style.top = `${Math.random() * 100}%`;
+            sparkle.style.animationDelay = `${Math.random() * 2}s`;
+            sparklesContainer.appendChild(sparkle);
+        }
+    }
+
+    // Вызываем функцию при загрузке страницы
+    document.addEventListener('DOMContentLoaded', createSparkles);
+</script>
+<!-- Footer Section -->
+<style>
+    .footer {
+        background-color: #121212;
+        color: #ffffff;
+        padding: 40px 0;
+        text-align: center;
+    }
+
+    .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .footer-chip {
+        font-size: 14px;
+        padding: 8px 16px;
+        border: 1px solid #ffffff;
+        border-radius: 20px;
+        background-color: transparent;
+        color: #ffffff;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .footer-chip:hover {
+        background-color: #ffffff;
+        color: #121212;
+    }
+
+    .footer-info {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .footer-info p {
+        margin: 5px 0;
+    }
+
+    @media (max-width: 768px) {
+        .footer-links {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+
+
+
+<footer class="footer">
+    <div class="footer-container">
+            <!-- В секции footer перед footer-links -->
+<div class="telegram-community">
+    <a href="https://t.me/noosfera_newera" target="_blank" class="telegram-link">
+        <svg class="telegram-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.05 2.25L2.25 10.35L9.45 13.65L16.65 7.35L10.35 14.55L18.45 21.75L22.05 2.25Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Канал-Комьюнити в Telegram</span>
+    </a>
+</div>
+
+<style>
+.telegram-community {
+    margin-bottom: 30px;
+}
+
+.telegram-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.telegram-link:hover {
+    transform: translateY(-3px);
+}
+
+.telegram-icon {
+    width: 40px;
+    height: 40px;
+    transition: all 0.3s ease;
+}
+
+.telegram-link:hover .telegram-icon {
+    transform: scale(1.1);
+        }
+    </style>
+        <div class="footer-links">
+            <a href="/policy" target="_blank" class="footer-chip">Политика конфиденциальности</a>
+            <a href="/oferta" target="_blank" class="footer-chip">Договор оферты</a>
+            <a href="https://t.me/sapientweb" target="_blank" class="footer-chip">Служба поддержки</a>
+        </div>
+        <div class="footer-info">
+            <p>ИП Гельвих Леонид Владимирович</p>
+            <p>ИНН: 771004647806</p>
+            <p>Контактный телефон: +79933554070</p>
+            <p>Контактный e-mail: leo.nocode.ai@gmail.com</p>
+        </div>
+    </div>
+</footer>
+
+
+
+
+</body>
+</html>

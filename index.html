@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/vite.svg" type="image/svg+xml" />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <title>Digital Forum AI Avatar</title>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <title>DIA 2.0 - Цифровой Аватар</title>
   </head>
   <body>
     <div class="app-container">
       <div class="glass-panel">
-        <div class="header">
-          <div class="logo">ALMATY DIGITAL FORUM</div>
-          <div class="status-indicator">
-            <span class="status-dot"></span>
-            <span class="status-text">AI Ready</span>
-          </div>
-        </div>
-
-        <div class="content">
+        <!-- Левая колонка с аватаром -->
+        <div class="avatar-column">
           <div class="video-container">
             <video id="avatarVideo" autoplay playsinline></video>
             <div class="video-overlay"></div>
+          </div>
+        </div>
+
+        <!-- Правая колонка с контролами -->
+        <div class="controls-column">
+          <div class="header">
+            <div class="logo">
+              <span class="logo-icon">
+                <span class="iconify" data-icon="carbon:ai-status-complete" style="color: #00ff88;"></span>
+              </span>
+              DIA 2.0
+            </div>
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span class="status-text">ИИ Готов</span>
+            </div>
           </div>
 
           <div class="controls">
             <div class="button-group">
               <button id="startSession" class="btn primary">
-                <span class="btn-icon">▶</span>
-                Start Session
+                <span class="iconify" data-icon="carbon:play-filled"></span>
+                Начать Сессию
               </button>
-              <button id="endSession" class="btn danger" disabled>
-                <span class="btn-icon">⬛</span>
-                End Session
+              <button id="endSession" class="btn danger hidden">
+                <span class="iconify" data-icon="carbon:stop-filled"></span>
+                Завершить
               </button>
             </div>
 
@@ -40,29 +50,39 @@
               <input
                 type="text"
                 id="userInput"
-                placeholder="Ask me anything..."
-                aria-label="User input"
+                placeholder="Задайте вопрос..."
+                aria-label="Ввод пользователя"
               />
               <button id="speakButton" class="btn accent">
-                <span class="btn-icon">🎙</span>
-                Speak
+                <span class="iconify" data-icon="carbon:microphone"></span>
+                Говорить
               </button>
             </div>
           </div>
-        </div>
 
-        <footer class="footer">
-          <div class="powered-by">Powered by HeyGen AI</div>
-          <div class="footer-controls">
-            <button id="downloadLogs" class="btn small">
-              <span class="btn-icon">📥</span>
-              Download Logs
-            </button>
-            <div class="version">v1.0.0</div>
-          </div>
-        </footer>
+          <footer class="footer">
+            <div class="powered-by">
+              <span class="iconify" data-icon="carbon:machine-learning-model"></span>
+              Powered by HeyGen AI
+            </div>
+            <div class="footer-controls">
+              <button id="downloadLogs" class="btn small">
+                <span class="iconify" data-icon="carbon:download"></span>
+                Логи
+              </button>
+              <div class="version">v2.0</div>
+            </div>
+          </footer>
+        </div>
       </div>
     </div>
+
+    <!-- Индикатор голосового ввода -->
+    <div class="voice-indicator">
+      <span class="iconify" data-icon="carbon:microphone-filled"></span>
+      <span>Говорите...</span>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
