@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 export class OpenAIAssistant {
   private openai: OpenAI;
   private assistantId: string;
-  private thread: any = null;
+  private thread: any;
 
   constructor(apiKey: string, assistantId: string) {
     this.openai = new OpenAI({
@@ -14,76 +14,66 @@ export class OpenAIAssistant {
   }
 
   async initialize() {
-    // Создаем или получаем ассистента
-    const assistant = await this.openai.beta.assistants.create({
-      name: "Russian Speaking Assistant",
-      instructions: "Ты дружелюбный русскоговорящий ассистент. Отвечай кратко, по делу и в разговорном стиле.",
-      model: "gpt-4o",
-    });
-    this.assistantId = assistant.id;
-    console.log('🤖 Assistant created:', this.assistantId);
-
-    // Создаем тред
     this.thread = await this.openai.beta.threads.create();
-    console.log('🔄 Thread created:', this.thread.id);
+    console.log('🧵 Thread created:', this.thread.id);
   }
 
-  async *streamResponse(userMessage: string) {
-    if (!this.thread) {
-      throw new Error('Assistant not initialized');
-    }
-
-    console.log('🚀 Начинаем стриминг для сообщения:', userMessage);
-
-    // Добавляем сообщение пользователя
+  async getResponse(message: string): Promise<string> {
+    // Добавляем сообщение в тред
     await this.openai.beta.threads.messages.create(this.thread.id, {
       role: "user",
-      content: userMessage
+      content: message
     });
-    console.log('✅ Сообщение добавлено в тред');
 
-    // Запускаем ассистента
+    // Запускаем выполнение
     const run = await this.openai.beta.threads.runs.create(this.thread.id, {
-      assistant_id: this.assistantId,
-      model: "gpt-4o",
-      instructions: "Отвечай кратко и по делу. Используй разговорный стиль."
+      assistant_id: this.assistantId
     });
-    console.log('🤖 Запущен run:', run.id);
 
-    // Стримим ответ в реальном времени
-    let response = await this.openai.beta.threads.runs.retrieve(this.thread.id, run.id);
-    console.log('📡 Статус:', response.status);
-    let lastMessageId = null;
+    // Ждем завершения
+    let response = await this.waitForResponse(run.id);
+    return response;
+  }
 
-    while (response.status === 'queued' || response.status === 'in_progress') {
-      // Получаем новые сообщения
-      const messages = await this.openai.beta.threads.messages.list(this.thread.id);
-      console.log('📨 Получено сообщений:', messages.data.length);
-      
-      // Проверяем новые сообщения
-      for (const message of messages.data) {
-        console.log('👀 Проверяем сообщение:', message.id, message.role);
-        if (message.role === 'assistant' && message.id !== lastMessageId) {
-          lastMessageId = message.id;
-          if (message.content[0]?.type === 'text') {
-            console.log('🎯 Новый чанк:', message.content[0].text.value);
-            yield message.content[0].text.value;
-          }
+  private async waitForResponse(runId: string): Promise<string> {
+    while (true) {
+      const run = await this.openai.beta.threads.runs.retrieve(
+        this.thread.id,
+        runId
+      );
+
+      if (run.status === 'completed') {
+        const messages = await this.openai.beta.threads.messages.list(
+          this.thread.id
+        );
+        
+        // Получаем последнее сообщение ассистента
+        const lastMessage = messages.data
+          .filter(msg => msg.role === 'assistant')[0];
+          
+        if (lastMessage && lastMessage.content[0].type === 'text') {
+          return lastMessage.content[0].text.value;
         }
+        return 'No response';
       }
 
-      // Маленькая задержка между проверками
-      await new Promise(resolve => setTimeout(resolve, 100));
-      response = await this.openai.beta.threads.runs.retrieve(this.thread.id, run.id);
-      console.log('📡 Новый статус:', response.status);
-    }
+      if (run.status === 'failed') {
+        throw new Error('Assistant run failed');
+      }
 
-    console.log('🏁 Стриминг завершен');
+      // Ждем немного перед следующей проверкой
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
 
   async cleanup() {
     if (this.thread) {
-      this.thread = null;
+      try {
+        await this.openai.beta.threads.del(this.thread.id);
+        console.log('🧹 Thread deleted:', this.thread.id);
+      } catch (error) {
+        console.error('Error deleting thread:', error);
+      }
     }
   }
 } 
