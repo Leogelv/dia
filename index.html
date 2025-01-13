@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/vite.svg" type="image/svg+xml" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Digital Forum AI Avatar</title>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="glass-panel">
+        <div class="header">
+          <div class="logo">ALMATY DIGITAL FORUM</div>
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">AI Ready</span>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="video-container">
+            <video id="avatarVideo" autoplay playsinline></video>
+            <div class="video-overlay"></div>
+          </div>
+
+          <div class="controls">
+            <div class="button-group">
+              <button id="startSession" class="btn primary">
+                <span class="btn-icon">▶</span>
+                Start Session
+              </button>
+              <button id="endSession" class="btn danger" disabled>
+                <span class="btn-icon">⬛</span>
+                End Session
+              </button>
+            </div>
+
+            <div class="input-group">
+              <input
+                type="text"
+                id="userInput"
+                placeholder="Ask me anything..."
+                aria-label="User input"
+              />
+              <button id="speakButton" class="btn accent">
+                <span class="btn-icon">🎙</span>
+                Speak
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <div class="powered-by">Powered by HeyGen AI</div>
+          <div class="version">v1.0.0</div>
+        </footer>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
