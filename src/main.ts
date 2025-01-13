@@ -31,11 +31,32 @@ let conversationHistory: ChatCompletionMessageParam[] = [
   }
 ];
 
+// Helper function to validate API key format
+function validateApiKey(apiKey: string): boolean {
+  // HeyGen API ключи обычно base64-encoded и содержат дату
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  return base64Regex.test(apiKey) && apiKey.length > 20;
+}
+
 // Helper function to fetch access token
 async function fetchAccessToken(): Promise<string> {
   try {
     logger.info('Fetching HeyGen access token');
     const apiKey = import.meta.env.VITE_HEYGEN_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('HeyGen API key is not configured');
+    }
+
+    if (!validateApiKey(apiKey)) {
+      throw new Error('Invalid HeyGen API key format');
+    }
+
+    logger.debug('Making API request to HeyGen', { 
+      url: 'https://api.heygen.com/v1/streaming.create_token',
+      headers: { 'x-api-key': `${apiKey.substring(0, 8)}...` } 
+    });
+
     const response = await fetch(
       "https://api.heygen.com/v1/streaming.create_token",
       {
@@ -44,11 +65,27 @@ async function fetchAccessToken(): Promise<string> {
       }
     );
 
-    const { data } = await response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HeyGen API error: ${response.status} ${response.statusText}\n${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.data?.token) {
+      throw new Error('Invalid response format: token not found in response');
+    }
+
     logger.info('Successfully obtained access token');
-    return data.token;
+    return data.data.token;
   } catch (error) {
-    logger.error('Failed to fetch access token', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to fetch access token', { 
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      apiKeyPresent: !!import.meta.env.VITE_HEYGEN_API_KEY,
+      apiKeyValid: import.meta.env.VITE_HEYGEN_API_KEY ? validateApiKey(import.meta.env.VITE_HEYGEN_API_KEY) : false
+    });
     throw error;
   }
 }
@@ -91,25 +128,54 @@ async function initializeAvatarSession() {
     logger.info('Initializing avatar session');
     
     const token = await fetchAccessToken();
+    logger.debug('Creating StreamingAvatar instance');
     avatar = new StreamingAvatar({ token });
+
+    logger.debug('Starting avatar with configuration', {
+      quality: AvatarQuality.High,
+      avatarName: "default"
+    });
 
     sessionData = await avatar.createStartAvatar({
       quality: AvatarQuality.High,
       avatarName: "default",
     });
 
-    logger.info('Avatar session initialized', { sessionData });
+    if (!sessionData) {
+      throw new Error('Failed to initialize avatar: No session data received');
+    }
+
+    logger.info('Avatar session initialized', { 
+      sessionId: sessionData.sessionId,
+      avatarId: sessionData.avatarId,
+      status: sessionData.status 
+    });
 
     endButton.disabled = false;
     startButton.disabled = true;
 
+    // Подписываемся на события стрима
     avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
     avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
     
     statusText.textContent = "AI Ready";
   } catch (error) {
-    logger.error('Session initialization error', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Session initialization error', { 
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      apiKey: import.meta.env.VITE_HEYGEN_API_KEY ? 'Present' : 'Missing'
+    });
     statusText.textContent = "Connection Failed";
+    
+    // Reset UI state
+    endButton.disabled = true;
+    startButton.disabled = false;
+    avatar = null;
+    sessionData = null;
+    
+    // Show error to user
+    alert(`Failed to initialize avatar session: ${errorMessage}. Please check your API key and try again.`);
   }
 }
 
@@ -190,6 +256,19 @@ async function handleSpeak() {
   } finally {
     speakButton.disabled = false;
   }
+}
+
+// Handle stream error
+function handleStreamError(error: any) {
+  statusText.textContent = "Error";
+  logger.error('Stream error occurred', error);
+  
+  // Reset UI state
+  endButton.disabled = true;
+  startButton.disabled = false;
+  videoElement.srcObject = null;
+  avatar = null;
+  sessionData = null;
 }
 
 // Event listeners for buttons

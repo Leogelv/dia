@@ -4,8 +4,12 @@ class Logger {
   private static instance: Logger;
   private logs: string[] = [];
   private readonly maxLogs = 1000;
+  private readonly logFile = 'app.log';
 
-  private constructor() {}
+  private constructor() {
+    // При создании логгера пытаемся загрузить существующие логи
+    this.loadLogs();
+  }
 
   static getInstance(): Logger {
     if (!Logger.instance) {
@@ -20,6 +24,21 @@ class Logger {
     return `[${timestamp}] ${level.toUpperCase()}: ${message}${dataStr}`;
   }
 
+  private async loadLogs() {
+    try {
+      const response = await fetch(this.logFile);
+      if (response.ok) {
+        const text = await response.text();
+        this.logs = text.split('\n').filter(Boolean);
+        if (this.logs.length > this.maxLogs) {
+          this.logs = this.logs.slice(-this.maxLogs);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load logs:', error);
+    }
+  }
+
   private addLog(formattedMessage: string) {
     this.logs.push(formattedMessage);
     if (this.logs.length > this.maxLogs) {
@@ -31,16 +50,17 @@ class Logger {
 
   private async saveToFile() {
     try {
-      const blob = new Blob([this.logs.join('\n')], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'avatar-app.log';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const response = await fetch('/api/logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: this.logs.join('\n'),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save logs: ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Failed to save logs:', error);
     }
@@ -73,7 +93,15 @@ class Logger {
   }
 
   downloadLogs() {
-    this.saveToFile();
+    const blob = new Blob([this.logs.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'avatar-app.log';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }
 
