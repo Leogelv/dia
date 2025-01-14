@@ -30,9 +30,9 @@ export class RealtimeLLM {
 
     (window as any).avatar?.on('speaking_ended', () => {
       console.log('🤐 Аватар закончил говорить - включаем микрофон');
+      // Включаем микрофон только если не обрабатываем команду
       if (!this.isSpeaking) {
-        this.startListening();
-        this.isListening = true;
+        setTimeout(() => this.startListening(), 100);
       }
     });
   }
@@ -91,58 +91,134 @@ export class RealtimeLLM {
       this.recognition.stop();
 
       try {
-        // Быстрый промежуточный ответ без запроса к GPT
-        const quickResponse = "Хм, сейчас посмотрю...";
-        await window.avatar?.speak({
-          text: quickResponse,
-          task_type: TaskType.REPEAT
+        // Первый запрос к GPT для выбора функции
+        const response = await this.openai.chat.completions.create({
+          model: "gpt-4-1106-preview",
+          messages: [
+            {
+              role: "system",
+              content: "Ты дружелюбный и энергичный мультиязычный ассистент на выставке Digital Almaty. Ты свободно говоришь на русском, английском и казахском языках. Отвечай на том языке, на котором к тебе обращаются, используя только буквы этого языка без смайликов и специальных символов. Используй функцию get_assistant_response для поиска информации в базе знаний. Отвечай развернуто, с энтузиазмом и харизмой, как настоящий ведущий на технологической выставке. Если видишь технические термины - объясняй их просто и понятно. Используй знаки препинания (запятые, точки) для естественных пауз в речи."
+            },
+            { role: "user", content: cleanCommand }
+          ],
+          temperature: 0.7,
+          max_tokens: 150,
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_assistant_response",
+                description: "Получает ответ из базы знаний ассистента",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    query: {
+                      type: "string",
+                      description: "Запрос к базе знаний"
+                    }
+                  },
+                  required: ["query"]
+                }
+              }
+            }
+          ],
+          tool_choice: "auto"
         });
 
-        // Сразу начинаем стримить ответ от ассистента
-        let textBuffer = '';
-        let isFirstChunk = true;
+        const toolCall = response.choices[0]?.message?.tool_calls?.[0];
         
-        for await (const chunk of this.assistant.streamResponse(cleanCommand)) {
-          textBuffer += chunk;
+        if (toolCall) {
+          // Если GPT хочет использовать функцию
+          const args = JSON.parse(toolCall.function.arguments);
+          const query = args.query?.trim() || cleanCommand;
           
-          // Проверяем есть ли знаки препинания
-          const punctuationMatch = textBuffer.match(/[,.!?]+\s*/);
+          // Проверяем что запрос не пустой
+          if (!query) {
+            console.warn('⚠️ Пустой запрос от GPT, используем оригинальный текст');
+            await window.avatar?.speak({
+              text: "Извини, я не смог правильно сформулировать запрос к базе знаний. Попробуй переформулировать вопрос.",
+              task_type: TaskType.REPEAT
+            });
+            return;
+          }
+
+          console.log('🔧 Вызываем функцию с аргументами:', { query });
+
+          // Промежуточный ответ только при поиске в базе знаний
+          const waitingResponse = await this.generateWaitingResponse(cleanCommand);
+          await window.avatar?.speak({
+            text: waitingResponse,
+            task_type: TaskType.REPEAT
+          });
+
+          // Буфер для накопления текста
+          let textBuffer = '';
+          let lastSpeakPromise = Promise.resolve();
           
-          if (punctuationMatch || isFirstChunk) {
-            const punctuationIndex = punctuationMatch ? punctuationMatch.index! + punctuationMatch[0].length : textBuffer.length;
-            const completePhrase = textBuffer.slice(0, punctuationIndex).trim();
+          // Собираем и озвучиваем ответ по частям
+          for await (const chunk of this.assistant.streamResponse(query)) {
+            textBuffer += chunk;
             
-            if (completePhrase) {
-              console.log('🗣️ Озвучиваем фразу:', completePhrase);
+            // Проверяем есть ли знаки препинания
+            const punctuationMatch = textBuffer.match(/[,.!?]+\s*/);
+            
+            if (punctuationMatch) {
+              const punctuationIndex = punctuationMatch.index! + punctuationMatch[0].length;
+              const completePhrase = textBuffer.slice(0, punctuationIndex).trim();
+              
+              if (completePhrase) {
+                console.log('🗣️ Озвучиваем фразу:', completePhrase);
+                // Используем Promise для параллельного выполнения
+                lastSpeakPromise = window.avatar?.speak({
+                  text: completePhrase,
+                  task_type: TaskType.REPEAT
+                });
+              }
+              
+              // Оставляем в буфере текст после знака препинания
+              textBuffer = textBuffer.slice(punctuationIndex);
+            }
+          }
+          
+          // Ждем завершения последней фразы
+          await lastSpeakPromise;
+          
+          // Озвучиваем остаток текста, если он есть
+          if (textBuffer.trim()) {
+            console.log('🗣️ Озвучиваем последнюю фразу:', textBuffer);
+            await window.avatar?.speak({
+              text: textBuffer.trim(),
+              task_type: TaskType.REPEAT
+            });
+          }
+
+        } else {
+          // Если GPT решил ответить сам - стримим его ответ
+          const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
+          
+          // Разбиваем ответ на фразы по знакам препинания
+          const phrases = simpleResponse.match(/[^,.!?]+[,.!?]+/g) || [simpleResponse];
+          
+          for (const phrase of phrases) {
+            const cleanPhrase = phrase.trim();
+            if (cleanPhrase) {
+              console.log('🗣️ Озвучиваем фразу:', cleanPhrase);
               await window.avatar?.speak({
-                text: completePhrase,
+                text: cleanPhrase,
                 task_type: TaskType.REPEAT
               });
             }
-            
-            // Оставляем в буфере текст после знака препинания
-            textBuffer = textBuffer.slice(punctuationIndex);
-            isFirstChunk = false;
           }
-        }
-        
-        // Озвучиваем остаток текста, если он есть
-        if (textBuffer.trim()) {
-          console.log('🗣️ Озвучиваем последнюю фразу:', textBuffer);
-          await window.avatar?.speak({
-            text: textBuffer.trim(),
-            task_type: TaskType.REPEAT
-          });
         }
 
       } finally {
         this.isSpeaking = false;
-        // Микрофон включится автоматически по событию speaking_ended
+        // Не включаем микрофон здесь - он включится по событию speaking_ended
       }
     } catch (error) {
       console.error('❌ Ошибка обработки команды:', error);
       this.isSpeaking = false;
-      // Микрофон включится автоматически по событию speaking_ended
+      // Не включаем микрофон здесь - он включится по событию speaking_ended
     }
   }
 
@@ -152,18 +228,18 @@ export class RealtimeLLM {
       messages: [
         {
           role: "system",
-          content: "Ты генерируешь короткую живую фразу (максимум 10-15 слов) для промежуточного ответа, пока идет поиск информации. Фраза должна быть уместной контексту запроса и звучать естественно, как будто человек реально задумался над вопросом. Используй разговорный стиль, можешь добавлять слова типа 'так', 'хм', 'дай подумать'. Не используй стандартные фразы типа 'секундочку' или 'минутку'."
+          content: "Генерируй ОЧЕНЬ короткую фразу (3-5 слов) для промежуточного ответа на чистом языке запроса (русский/английский/казахский) без смайликов и специальных символов."
         },
         { 
           role: "user", 
           content: `Сгенерируй промежуточную фразу для запроса: "${query}"`
         }
       ],
-      temperature: 0.9,
-      max_tokens: 50
+      temperature: 0.7,
+      max_tokens: 20
     });
 
-    return response.choices[0]?.message?.content || "Хм, интересный вопрос, дай подумаю...";
+    return response.choices[0]?.message?.content || "Сейчас посмотрю";
   }
 
   async initialize() {
@@ -173,15 +249,12 @@ export class RealtimeLLM {
 
   startListening() {
     if (!this.isListening) {
-      console.log('🎤 Включаем микрофон');
       this.recognition.start();
-      this.isListening = true;
     }
   }
 
   stopListening() {
     if (this.isListening) {
-      console.log('🎤 Выключаем микрофон');
       this.recognition.stop();
       this.isListening = false;
     }
