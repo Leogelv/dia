@@ -6,14 +6,6 @@ import StreamingAvatar, {
 } from "@heygen/streaming-avatar";
 import { RealtimeLLM } from './realtime-llm';
 import { logger } from './utils/logger';
-import { OpenAIAssistant } from './openai-assistant';
-
-// В начале файла
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-  console.log('✅ Браузер поддерживает Web Speech API');
-} else {
-  console.error('❌ Браузер не поддерживает Web Speech API');
-}
 
 // Конфигурация
 const CONFIG = {
@@ -32,7 +24,6 @@ const downloadLogsButton = document.getElementById("downloadLogs") as HTMLButton
 let avatar: StreamingAvatar | null = null;
 let sessionData: any = null;
 let llm: RealtimeLLM | null = null;
-let openAIAssistant: OpenAIAssistant | null = null;
 
 // Улучшенное логирование
 function debugLog(message: string, data?: any) {
@@ -82,12 +73,6 @@ async function initializeAvatarSession() {
     // Принудительно завершаем ВСЕ сессии перед стартом
     await terminateAllSessions();
     
-    // Инициализируем OpenAI Assistant для голосового управления
-    debugLog('🎤 Инициализация голосового ассистента');
-    openAIAssistant = new OpenAIAssistant(CONFIG.OPENAI_API_KEY, CONFIG.ASSISTANT_ID);
-    await openAIAssistant.initialize();
-    openAIAssistant.startListening();
-    
     // Инициализируем LLM
     debugLog('🤖 Инициализация LLM');
     llm = new RealtimeLLM(CONFIG.OPENAI_API_KEY, CONFIG.ASSISTANT_ID);
@@ -120,7 +105,6 @@ async function initializeAvatarSession() {
           voice: {
             voiceId: "bc69c9589d6747028dc5ec4aec2b43c3"
           }
-          //language: "Russian"
         });
 
         if (!sessionData) {
@@ -149,8 +133,8 @@ async function initializeAvatarSession() {
     
     statusText.textContent = "ИИ Активен";
 
-    window.avatar = avatar;
-    window.llm = llm;
+    // Делаем аватар доступным глобально для RealtimeLLM
+    (window as any).avatar = avatar;
   } catch (error) {
     debugLog('❌ Ошибка инициализации:', error);
     handleError(error);
@@ -187,13 +171,6 @@ async function terminateAvatarSession() {
   try {
     debugLog('🛑 Завершаем сессию');
     statusText.textContent = "Отключение...";
-    
-    // Останавливаем голосовое распознавание
-    if (openAIAssistant) {
-      openAIAssistant.stopListening();
-      await openAIAssistant.cleanup();
-      openAIAssistant = null;
-    }
     
     if (llm) {
       await llm.cleanup();
