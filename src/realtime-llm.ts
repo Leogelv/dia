@@ -73,73 +73,95 @@ export class RealtimeLLM {
 
       if (!cleanCommand) return;
 
-      const needsAssistant = await this.checkIfNeedsAssistant(cleanCommand);
       this.isSpeaking = true;
       this.recognition.stop();
 
       try {
-        if (needsAssistant) {
-          // Промежуточный ответ
-          const waitingResponse = await this.generateWaitingResponse(cleanCommand);
-          await window.avatar?.speak({
-            text: waitingResponse,
-            task_type: TaskType.REPEAT
-          });
+        // Промежуточный ответ
+        const waitingResponse = await this.generateWaitingResponse(cleanCommand);
+        await window.avatar?.speak({
+          text: waitingResponse,
+          task_type: TaskType.REPEAT
+        });
 
-          // Вызываем функцию через GPT
-          const toolCall = await this.openai.chat.completions.create({
+        // Первый запрос к GPT для выбора функции
+        const response = await this.openai.chat.completions.create({
+          model: "gpt-4-1106-preview",
+          messages: [
+            {
+              role: "system",
+              content: "Ты дружелюбный русскоговорящий ассистент. Используй функцию get_assistant_response для поиска информации в базе знаний."
+            },
+            { role: "user", content: cleanCommand }
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_assistant_response",
+                description: "Получает ответ из базы знаний ассистента",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    query: {
+                      type: "string",
+                      description: "Запрос к базе знаний"
+                    }
+                  },
+                  required: ["query"]
+                }
+              }
+            }
+          ],
+          tool_choice: "auto"
+        });
+
+        const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+        
+        if (toolCall) {
+          // Если GPT хочет использовать функцию
+          const args = JSON.parse(toolCall.function.arguments);
+          const query = args.query.trim();
+          console.log('🔧 Вызываем функцию с аргументами:', { query });
+
+          // Собираем ответ из стрима в строку
+          let functionResponse = '';
+          for await (const chunk of this.assistant.streamResponse(query)) {
+            functionResponse += chunk;
+          }
+          console.log('📝 Ответ от функции:', functionResponse);
+
+          // Второй запрос с результатом функции
+          const secondResponse = await this.openai.chat.completions.create({
             model: "gpt-4-1106-preview",
             messages: [
               {
                 role: "system",
-                content: "Ты помогаешь получить информацию из базы знаний ассистента. Используй функцию get_assistant_response для запроса к базе."
+                content: "Ты дружелюбный русскоговорящий ассистент. Используй информацию из базы знаний для ответа."
               },
-              { role: "user", content: cleanCommand }
-            ],
-            tools: [
+              { role: "user", content: cleanCommand },
+              response.choices[0].message,
               {
-                type: "function",
-                function: {
-                  name: "get_assistant_response",
-                  description: "Получает ответ из базы знаний ассистента",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      query: {
-                        type: "string",
-                        description: "Запрос к базе знаний"
-                      }
-                    },
-                    required: ["query"]
-                  }
-                }
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: functionResponse
               }
-            ],
-            tool_choice: {
-              type: "function",
-              function: { name: "get_assistant_response" }
-            }
+            ]
           });
 
-          // Получаем аргументы функции из ответа GPT
-          const toolCallArgs = JSON.parse(toolCall.choices[0]?.message?.tool_calls?.[0]?.function?.arguments || '{}');
-          
-          console.log('🔧 Вызов функции с аргументами:', toolCallArgs);
-
-          // Передаем запрос ассистенту
-          const assistantResponse = await this.assistant.streamResponse(toolCallArgs.query || cleanCommand);
           await window.avatar?.speak({
-            text: assistantResponse,
+            text: secondResponse.choices[0]?.message?.content || "Извини, я не смог обработать ответ из базы знаний",
             task_type: TaskType.REPEAT
           });
         } else {
-          // Простой чат
-          const response = await this.getSimpleResponse(cleanCommand);
+          // Если GPT решил ответить сам
+          const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
           await window.avatar?.speak({
-            text: response,
+            text: simpleResponse,
             task_type: TaskType.REPEAT
           });
         }
+
       } finally {
         this.isSpeaking = false;
         if (this.isListening) {
@@ -153,40 +175,6 @@ export class RealtimeLLM {
         setTimeout(() => this.recognition.start(), 100);
       }
     }
-  }
-
-  private async checkIfNeedsAssistant(text: string): Promise<boolean> {
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
-      messages: [
-        {
-          role: "system",
-          content: "Ты анализируешь запрос пользователя и определяешь, нужно ли обращаться к базе знаний ассистента. Отвечай только true или false. True если запрос содержит вопросы о конкретных данных, фактах, истории разговора или требует доступа к сохраненной информации. False если это общий вопрос или запрос на разговор."
-        },
-        { role: "user", content: text }
-      ],
-      temperature: 0,
-      max_tokens: 5
-    });
-
-    return response.choices[0]?.message?.content?.toLowerCase() === 'true';
-  }
-
-  private async getSimpleResponse(text: string): Promise<string> {
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
-      messages: [
-        {
-          role: "system",
-          content: "Ты дружелюбный русскоговорящий ассистент. Отвечай кратко и по делу, в разговорном стиле."
-        },
-        { role: "user", content: text }
-      ],
-      temperature: 0.7,
-      max_tokens: 150
-    });
-
-    return response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
   }
 
   private async generateWaitingResponse(query: string): Promise<string> {
