@@ -32,6 +32,7 @@ export class RealtimeLLM {
       console.log('🤐 Аватар закончил говорить - включаем микрофон');
       if (!this.isSpeaking) {
         this.startListening();
+        this.isListening = true;
       }
     });
   }
@@ -90,105 +91,58 @@ export class RealtimeLLM {
       this.recognition.stop();
 
       try {
-        // Первый запрос к GPT для выбора функции
-        const response = await this.openai.chat.completions.create({
-          model: "gpt-4-1106-preview",
-          messages: [
-            {
-              role: "system",
-              content: "Ты дружелюбный и энергичный мультиязычный ассистент на выставке Digital Almaty. Ты свободно говоришь на русском, английском и казахском языках. Отвечай на том языке, на котором к тебе обращаются. Используй функцию get_assistant_response для поиска информации в базе знаний. Отвечай развернуто, с энтузиазмом и харизмой, как настоящий ведущий на технологической выставке. Если видишь технические термины - объясняй их просто и понятно."
-            },
-            { role: "user", content: cleanCommand }
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "get_assistant_response",
-                description: "Получает ответ из базы знаний ассистента",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    query: {
-                      type: "string",
-                      description: "Запрос к базе знаний"
-                    }
-                  },
-                  required: ["query"]
-                }
-              }
-            }
-          ],
-          tool_choice: "auto"
+        // Быстрый промежуточный ответ без запроса к GPT
+        const quickResponse = "Хм, сейчас посмотрю...";
+        await window.avatar?.speak({
+          text: quickResponse,
+          task_type: TaskType.REPEAT
         });
 
-        const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+        // Сразу начинаем стримить ответ от ассистента
+        let textBuffer = '';
+        let isFirstChunk = true;
         
-        if (toolCall) {
-          // Если GPT хочет использовать функцию
-          const args = JSON.parse(toolCall.function.arguments);
-          const query = args.query?.trim() || cleanCommand;
+        for await (const chunk of this.assistant.streamResponse(cleanCommand)) {
+          textBuffer += chunk;
           
-          // Проверяем что запрос не пустой
-          if (!query) {
-            console.warn('⚠️ Пустой запрос от GPT, используем оригинальный текст');
-            await window.avatar?.speak({
-              text: "Извини, я не смог правильно сформулировать запрос к базе знаний. Попробуй переформулировать вопрос.",
-              task_type: TaskType.REPEAT
-            });
-            return;
+          // Проверяем есть ли знаки препинания
+          const punctuationMatch = textBuffer.match(/[,.!?]+\s*/);
+          
+          if (punctuationMatch || isFirstChunk) {
+            const punctuationIndex = punctuationMatch ? punctuationMatch.index! + punctuationMatch[0].length : textBuffer.length;
+            const completePhrase = textBuffer.slice(0, punctuationIndex).trim();
+            
+            if (completePhrase) {
+              console.log('🗣️ Озвучиваем фразу:', completePhrase);
+              await window.avatar?.speak({
+                text: completePhrase,
+                task_type: TaskType.REPEAT
+              });
+            }
+            
+            // Оставляем в буфере текст после знака препинания
+            textBuffer = textBuffer.slice(punctuationIndex);
+            isFirstChunk = false;
           }
-
-          console.log('🔧 Вызываем функцию с аргументами:', { query });
-
-          // Промежуточный ответ только при поиске в базе знаний
-          const waitingResponse = await this.generateWaitingResponse(cleanCommand);
+        }
+        
+        // Озвучиваем остаток текста, если он есть
+        if (textBuffer.trim()) {
+          console.log('🗣️ Озвучиваем последнюю фразу:', textBuffer);
           await window.avatar?.speak({
-            text: waitingResponse,
-            task_type: TaskType.REPEAT
-          });
-
-          // Собираем ответ из стрима в строку
-          let functionResponse = '';
-          for await (const chunk of this.assistant.streamResponse(query)) {
-            functionResponse += chunk;
-          }
-
-          // Проверяем что получили ответ
-          if (!functionResponse.trim()) {
-            console.warn('⚠️ Пустой ответ от функции');
-            await window.avatar?.speak({
-              text: "Извини, я не нашел информации по этому запросу в базе знаний. Попробуй спросить по-другому.",
-              task_type: TaskType.REPEAT
-            });
-            return;
-          }
-
-          console.log('📝 Ответ от функции:', functionResponse);
-
-          // Отправляем ответ функции аватару
-          await window.avatar?.speak({
-            text: functionResponse,
-            task_type: TaskType.REPEAT
-          });
-
-        } else {
-          // Если GPT решил ответить сам - сразу отвечаем без промежуточной фразы
-          const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
-          await window.avatar?.speak({
-            text: simpleResponse,
+            text: textBuffer.trim(),
             task_type: TaskType.REPEAT
           });
         }
 
       } finally {
         this.isSpeaking = false;
-        // Не включаем микрофон здесь - он включится по событию speaking_ended
+        // Микрофон включится автоматически по событию speaking_ended
       }
     } catch (error) {
       console.error('❌ Ошибка обработки команды:', error);
       this.isSpeaking = false;
-      // Не включаем микрофон здесь - он включится по событию speaking_ended
+      // Микрофон включится автоматически по событию speaking_ended
     }
   }
 
@@ -219,12 +173,15 @@ export class RealtimeLLM {
 
   startListening() {
     if (!this.isListening) {
+      console.log('🎤 Включаем микрофон');
       this.recognition.start();
+      this.isListening = true;
     }
   }
 
   stopListening() {
     if (this.isListening) {
+      console.log('🎤 Выключаем микрофон');
       this.recognition.stop();
       this.isListening = false;
     }
