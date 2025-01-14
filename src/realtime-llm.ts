@@ -100,7 +100,7 @@ export class RealtimeLLM {
       console.log(`[${new Date().toLocaleTimeString()}] 📝 Обрабатываем команду:`, cleanCommand);
 
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
