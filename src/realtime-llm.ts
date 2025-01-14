@@ -137,8 +137,18 @@ export class RealtimeLLM {
         
         console.log(`[${new Date().toLocaleTimeString()}] 🔧 Поиск в базе знаний:`, { query });
 
+        // Запускаем генерацию промежуточного ответа параллельно
+        const waitingResponsePromise = this.generateWaitingResponse(cleanCommand);
+
         // Начинаем стримить ответ сразу
         const responseStream = this.assistant.streamResponse(query);
+        
+        // Дожидаемся промежуточного ответа и озвучиваем его
+        const waitingResponse = await waitingResponsePromise;
+        await window.avatar?.speak({
+          text: waitingResponse,
+          task_type: TaskType.REPEAT
+        });
         
         // Буфер для накопления текста
         let textBuffer = '';
@@ -179,14 +189,29 @@ export class RealtimeLLM {
           });
         }
       } else {
-        // Простой ответ - сразу озвучиваем
+        // Простой ответ - разбиваем по точкам и озвучиваем по частям
         const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
         console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Простой ответ:`, simpleResponse);
         
-        await window.avatar?.speak({
-          text: simpleResponse,
-          task_type: TaskType.REPEAT
-        });
+        // Разбиваем на фразы по точкам
+        const phrases = simpleResponse.split(/(?<=\.)\s*/);
+        let lastSpeakPromise = Promise.resolve();
+
+        for (const phrase of phrases) {
+          const cleanPhrase = phrase.trim();
+          if (cleanPhrase) {
+            console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем фразу:`, cleanPhrase);
+            lastSpeakPromise = window.avatar?.speak({
+              text: cleanPhrase,
+              task_type: TaskType.REPEAT
+            });
+            // Ждем небольшую паузу между фразами
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        // Ждем завершения последней фразы
+        await lastSpeakPromise;
       }
     } catch (error) {
       console.error(`[${new Date().toLocaleTimeString()}] ❌ Ошибка:`, error);
