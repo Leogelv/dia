@@ -23,18 +23,30 @@ export class RealtimeLLM {
     this.initSpeechRecognition();
 
     // Слушаем события аватара
-    (window as any).avatar?.on('speaking_started', () => {
-      console.log('🗣️ Аватар начал говорить - отключаем микрофон');
-      this.stopListening();
+    (window as any).avatar?.on('AVATAR_TALKING_MESSAGE', () => {
+      console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Аватар говорит - снижаем чувствительность микрофона`);
+      // Здесь можно добавить логику снижения чувствительности
     });
 
-    (window as any).avatar?.on('speaking_ended', () => {
-      console.log('🤐 Аватар закончил говорить - включаем микрофон');
-      // Включаем микрофон только если не обрабатываем команду
-      if (!this.isSpeaking) {
-        setTimeout(() => this.startListening(), 100);
+    // Удаляем старые обработчики speaking_started и speaking_ended
+    
+    // Модифицируем обработку результатов распознавания
+    this.recognition.onresult = async (event: any) => {
+      const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+      console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано:`, text);
+      
+      // Проверяем на ключевое слово
+      if (text.includes('ассистент') || text.includes('assistant')) {
+        console.log(`[${new Date().toLocaleTimeString()}] 🎯 Обнаружено ключевое слово - начинаем обработку`);
+        await this.handleCommand(text);
       }
-    });
+    };
+
+    this.recognition.onend = () => {
+      console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание остановлено`);
+      // Всегда перезапускаем распознавание
+      setTimeout(() => this.recognition.start(), 100);
+    };
   }
 
   private initSpeechRecognition() {
@@ -52,12 +64,12 @@ export class RealtimeLLM {
       this.recognition.interimResults = false;
 
       this.recognition.onstart = () => {
-        console.log('🎤 Распознавание запущено');
+        console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание запущено`);
         this.isListening = true;
       };
 
       this.recognition.onend = () => {
-        console.log('🎤 Распознавание остановлено');
+        console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание остановлено`);
         if (this.isListening && !this.isSpeaking) {
           setTimeout(() => this.recognition.start(), 100);
         }
@@ -65,10 +77,11 @@ export class RealtimeLLM {
 
       this.recognition.onresult = async (event: any) => {
         const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log('🗣 Распознано:', text);
+        console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано:`, text);
         
         // Проверяем на ключевое слово
         if (text.includes('ассистент') || text.includes('assistant')) {
+          console.log(`[${new Date().toLocaleTimeString()}] 🎯 Обнаружено ключевое слово - начинаем обработку`);
           await this.handleCommand(text);
         }
       };
@@ -81,150 +94,110 @@ export class RealtimeLLM {
 
   private async handleCommand(command: string) {
     try {
-      const cleanCommand = command
-        .replace(/ассистент|assistant/gi, '')
-        .trim();
-
-      if (!cleanCommand) return;
-
       this.isSpeaking = true;
-      this.recognition.stop();
+      const cleanCommand = command.replace(/ассистент|assistant/gi, '').trim();
+      
+      console.log(`[${new Date().toLocaleTimeString()}] 📝 Обрабатываем команду:`, cleanCommand);
 
-      try {
-        // Первый запрос к GPT для выбора функции
-        const response = await this.openai.chat.completions.create({
-          model: "gpt-4-1106-preview",
-          messages: [
-            {
-              role: "system",
-              content: "Ты дружелюбный и энергичный мультиязычный ассистент на выставке Digital Almaty. Ты свободно говоришь на русском, английском и казахском языках. Отвечай на том языке, на котором к тебе обращаются, используя только буквы этого языка без смайликов и специальных символов. Используй функцию get_assistant_response для поиска информации в базе знаний. Отвечай развернуто, с энтузиазмом и харизмой, как настоящий ведущий на технологической выставке. Если видишь технические термины - объясняй их просто и понятно. Используй знаки препинания (запятые, точки) для естественных пауз в речи."
-            },
-            { role: "user", content: cleanCommand }
-          ],
-          temperature: 0.7,
-          max_tokens: 150,
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "get_assistant_response",
-                description: "Получает ответ из базы знаний ассистента",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    query: {
-                      type: "string",
-                      description: "Запрос к базе знаний"
-                    }
-                  },
-                  required: ["query"]
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "Ты дружелюбный ассистент. Отвечай кратко, без смайликов и спецсимволов, на языке запроса."
+          },
+          { role: "user", content: cleanCommand }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+        tools: [{
+          type: "function",
+          function: {
+            name: "get_assistant_response",
+            description: "Get response from knowledge base",
+            parameters: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "The search query"
                 }
-              }
+              },
+              required: ["query"]
             }
-          ],
-          tool_choice: "auto"
-        });
+          }
+        }],
+        tool_choice: "auto"
+      });
 
-        const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+      if (response.choices[0]?.message?.tool_calls) {
+        // Если нужен поиск в базе знаний
+        const toolCall = response.choices[0].message.tool_calls[0];
+        const query = JSON.parse(toolCall.function.arguments).query.trim();
         
-        if (toolCall) {
-          // Если GPT хочет использовать функцию
-          const args = JSON.parse(toolCall.function.arguments);
-          const query = args.query?.trim() || cleanCommand;
+        console.log(`[${new Date().toLocaleTimeString()}] 🔧 Поиск в базе знаний:`, { query });
+
+        // Начинаем стримить ответ сразу
+        const responseStream = this.assistant.streamResponse(query);
+        
+        // Буфер для накопления текста
+        let textBuffer = '';
+        let lastSpeakPromise = Promise.resolve();
+        
+        // Собираем и озвучиваем ответ по частям
+        for await (const chunk of responseStream) {
+          textBuffer += chunk;
           
-          // Проверяем что запрос не пустой
-          if (!query) {
-            console.warn('⚠️ Пустой запрос от GPT, используем оригинальный текст');
-            await window.avatar?.speak({
-              text: "Извини, я не смог правильно сформулировать запрос к базе знаний. Попробуй переформулировать вопрос.",
-              task_type: TaskType.REPEAT
-            });
-            return;
-          }
-
-          console.log('🔧 Вызываем функцию с аргументами:', { query });
-
-          // Промежуточный ответ только при поиске в базе знаний
-          const waitingResponse = await this.generateWaitingResponse(cleanCommand);
-          await window.avatar?.speak({
-            text: waitingResponse,
-            task_type: TaskType.REPEAT
-          });
-
-          // Буфер для накопления текста
-          let textBuffer = '';
-          let lastSpeakPromise = Promise.resolve();
+          // Проверяем есть ли знаки препинания
+          const punctuationMatch = textBuffer.match(/[,.!?]+\s*/);
           
-          // Собираем и озвучиваем ответ по частям
-          for await (const chunk of this.assistant.streamResponse(query)) {
-            textBuffer += chunk;
+          if (punctuationMatch) {
+            const punctuationIndex = punctuationMatch.index! + punctuationMatch[0].length;
+            const completePhrase = textBuffer.slice(0, punctuationIndex).trim();
             
-            // Проверяем есть ли знаки препинания
-            const punctuationMatch = textBuffer.match(/[,.!?]+\s*/);
-            
-            if (punctuationMatch) {
-              const punctuationIndex = punctuationMatch.index! + punctuationMatch[0].length;
-              const completePhrase = textBuffer.slice(0, punctuationIndex).trim();
-              
-              if (completePhrase) {
-                console.log('🗣️ Озвучиваем фразу:', completePhrase);
-                // Используем Promise для параллельного выполнения
-                lastSpeakPromise = window.avatar?.speak({
-                  text: completePhrase,
-                  task_type: TaskType.REPEAT
-                });
-              }
-              
-              // Оставляем в буфере текст после знака препинания
-              textBuffer = textBuffer.slice(punctuationIndex);
-            }
-          }
-          
-          // Ждем завершения последней фразы
-          await lastSpeakPromise;
-          
-          // Озвучиваем остаток текста, если он есть
-          if (textBuffer.trim()) {
-            console.log('🗣️ Озвучиваем последнюю фразу:', textBuffer);
-            await window.avatar?.speak({
-              text: textBuffer.trim(),
-              task_type: TaskType.REPEAT
-            });
-          }
-
-        } else {
-          // Если GPT решил ответить сам - стримим его ответ
-          const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
-          
-          // Разбиваем ответ на фразы по знакам препинания
-          const phrases = simpleResponse.match(/[^,.!?]+[,.!?]+/g) || [simpleResponse];
-          
-          for (const phrase of phrases) {
-            const cleanPhrase = phrase.trim();
-            if (cleanPhrase) {
-              console.log('🗣️ Озвучиваем фразу:', cleanPhrase);
-              await window.avatar?.speak({
-                text: cleanPhrase,
+            if (completePhrase) {
+              console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем фразу:`, completePhrase);
+              lastSpeakPromise = window.avatar?.speak({
+                text: completePhrase,
                 task_type: TaskType.REPEAT
               });
             }
+            
+            textBuffer = textBuffer.slice(punctuationIndex);
           }
         }
-
-      } finally {
-        this.isSpeaking = false;
-        // Не включаем микрофон здесь - он включится по событию speaking_ended
+        
+        // Ждем завершения последней фразы
+        await lastSpeakPromise;
+        
+        // Озвучиваем остаток текста
+        if (textBuffer.trim()) {
+          console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем последнюю фразу:`, textBuffer);
+          await window.avatar?.speak({
+            text: textBuffer.trim(),
+            task_type: TaskType.REPEAT
+          });
+        }
+      } else {
+        // Простой ответ - сразу озвучиваем
+        const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
+        console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Простой ответ:`, simpleResponse);
+        
+        await window.avatar?.speak({
+          text: simpleResponse,
+          task_type: TaskType.REPEAT
+        });
       }
     } catch (error) {
-      console.error('❌ Ошибка обработки команды:', error);
+      console.error(`[${new Date().toLocaleTimeString()}] ❌ Ошибка:`, error);
+    } finally {
       this.isSpeaking = false;
-      // Не включаем микрофон здесь - он включится по событию speaking_ended
     }
   }
 
   private async generateWaitingResponse(query: string): Promise<string> {
     const response = await this.openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
