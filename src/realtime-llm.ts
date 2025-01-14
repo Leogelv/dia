@@ -121,7 +121,18 @@ export class RealtimeLLM {
         if (toolCall) {
           // Если GPT хочет использовать функцию
           const args = JSON.parse(toolCall.function.arguments);
-          const query = args.query.trim();
+          const query = args.query?.trim() || cleanCommand;
+          
+          // Проверяем что запрос не пустой
+          if (!query) {
+            console.warn('⚠️ Пустой запрос от GPT, используем оригинальный текст');
+            await window.avatar?.speak({
+              text: "Извини, я не смог правильно сформулировать запрос к базе знаний. Попробуй переформулировать вопрос.",
+              task_type: TaskType.REPEAT
+            });
+            return;
+          }
+
           console.log('🔧 Вызываем функцию с аргументами:', { query });
 
           // Собираем ответ из стрима в строку
@@ -129,6 +140,17 @@ export class RealtimeLLM {
           for await (const chunk of this.assistant.streamResponse(query)) {
             functionResponse += chunk;
           }
+
+          // Проверяем что получили ответ
+          if (!functionResponse.trim()) {
+            console.warn('⚠️ Пустой ответ от функции');
+            await window.avatar?.speak({
+              text: "Извини, я не нашел информации по этому запросу в базе знаний. Попробуй спросить по-другому.",
+              task_type: TaskType.REPEAT
+            });
+            return;
+          }
+
           console.log('📝 Ответ от функции:', functionResponse);
 
           // Второй запрос с результатом функции
