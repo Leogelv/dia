@@ -10,12 +10,12 @@ interface Window {
 export class OpenAIAssistant {
   private openai: OpenAI;
   private assistantId: string;
-  private thread: any;
+  private thread: any = null;
   private recognition: any;
   private isListening: boolean = false;
   private transcriptBuffer: string[] = [];
   private lastUpdateTime: number = Date.now();
-  private readonly UPDATE_INTERVAL = 1 * 60 * 1000; // 1 минута
+  private readonly UPDATE_INTERVAL = 5 * 60 * 1000;
   private fileId: string | null = null;
   private updateTimer: NodeJS.Timer | null = null;
 
@@ -46,7 +46,7 @@ export class OpenAIAssistant {
       this.recognition.interimResults = false;
       this.recognition.maxAlternatives = 3;
 
-      const grammar = '#JSGF V1.0; grammar keywords; public <keyword> = дия | диа | дія | dia | diya;';
+      const grammar = '#JSGF V1.0; grammar keywords; public <keyword> = ассистент | assistant;';
       const speechRecognitionList = new (window as any).webkitSpeechGrammarList();
       speechRecognitionList.addFromString(grammar, 1);
       this.recognition.grammars = speechRecognitionList;
@@ -77,7 +77,7 @@ export class OpenAIAssistant {
         
         await this.checkAndUpdateContext(text);
         
-        const keywords = ['дия', 'diya', 'диа', 'dia', 'дія'];
+        const keywords = ['ассистент', 'assistant'];
         const hasKeyword = keywords.some(keyword => text.toLowerCase().includes(keyword));
         
         if (hasKeyword) {
@@ -103,82 +103,90 @@ export class OpenAIAssistant {
 
   private async processVoiceCommand(command: string) {
     try {
+      const startTime = Date.now();
+      console.time('🕒 Полное время обработки команды');
+      
       const text = command.toLowerCase();
-      const keywords = ['дия', 'diya', 'диа', 'dia', 'дія'];
+      const keywords = ['ассистент', 'assistant'];
       
       const hasKeyword = keywords.some(keyword => text.includes(keyword));
-      if (!hasKeyword) {
-        console.log('🤖 Игнорирую команду без ключевого слова');
-        return;
-      }
+      if (!hasKeyword) return;
 
       const cleanCommand = text
-        .replace(/дия|diya|диа|dia|дія/gi, '')
+        .replace(/ассистент|assistant/gi, '')
         .trim();
 
-      if (!cleanCommand) {
-        console.log('🤖 Пустая команда после удаления ключевого слова');
-        return;
-      }
+      if (!cleanCommand) return;
 
-      console.log('🤖 Отправка голосовой команды ассистенту:', cleanCommand);
-      
-      // Временно останавливаем распознавание во время обработки команды
+      console.log('🤖 Отправка команды:', cleanCommand);
       this.recognition.stop();
       
-      if (window.llm) {
-        let textBuffer = '';
-        const sentenceEnd = /[.!?]\s+/;
+      // Создаем сообщение
+      console.time('🕒 Создание сообщения');
+      await this.openai.beta.threads.messages.create(this.thread.id, {
+        role: "user",
+        content: cleanCommand
+      });
+      console.timeEnd('🕒 Создание сообщения');
 
-        for await (const chunk of window.llm.streamResponse(cleanCommand)) {
-          textBuffer += chunk;
-          
-          if (sentenceEnd.test(textBuffer) || textBuffer.length > 150) {
-            const sentences = textBuffer.split(sentenceEnd);
-            
-            textBuffer = sentences.pop() || '';
-            
-            for (const sentence of sentences) {
-              if (sentence.trim()) {
-                await window.avatar.speak({
-                  text: sentence.trim(),
-                  task_type: TaskType.REPEAT
-                });
-              }
+      // Запускаем run
+      console.time('🕒 Запуск run');
+      const run = await this.openai.beta.threads.runs.create(this.thread.id, {
+        assistant_id: this.assistantId
+      });
+      console.timeEnd('🕒 Запуск run');
+
+      let lastMessageId: string | null = null;
+      let textBuffer = '';
+
+      // Стримим ответ
+      while (true) {
+        console.time('🕒 Итерация получения ответа');
+        const messages = await this.openai.beta.threads.messages.list(this.thread.id);
+        const runStatus = await this.openai.beta.threads.runs.retrieve(
+          this.thread.id,
+          run.id
+        );
+
+        // Проверяем новые сообщения
+        for (const message of messages.data) {
+          if (message.role === 'assistant' && message.id !== lastMessageId) {
+            lastMessageId = message.id;
+            if (message.content[0]?.type === 'text') {
+              const newText = message.content[0].text.value;
+              console.log(`📝 Новый текст (${Date.now() - startTime}мс):`, newText);
+              
+              // Сразу отправляем в HeyGen
+              await window.avatar.speak({
+                text: newText.trim(),
+                task_type: TaskType.REPEAT
+              });
             }
           }
         }
 
-        if (textBuffer.trim()) {
-          await window.avatar.speak({
-            text: textBuffer.trim(),
-            task_type: TaskType.REPEAT
-          });
+        console.timeEnd('🕒 Итерация получения ответа');
+
+        if (runStatus.status === 'completed') {
+          console.log(`✅ Выполнение завершено через ${Date.now() - startTime}мс`);
+          break;
         }
+        if (runStatus.status === 'failed') {
+          throw new Error(`Run failed: ${runStatus.last_error?.message || 'Unknown error'}`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
-      // Перезапускаем распознавание после обработки команды
+
       if (this.isListening) {
-        console.log('🎤 Перезапуск распознавания после команды...');
-        setTimeout(() => {
-          try {
-            this.recognition.start();
-          } catch (error) {
-            console.error('❌ Ошибка при перезапуске распознавания:', error);
-          }
-        }, 100);
+        setTimeout(() => this.recognition.start(), 100);
       }
+
+      console.timeEnd('🕒 Полное время обработки команды');
     } catch (error) {
-      console.error('❌ Ошибка при обработке голосовой команды:', error);
-      // Убедимся, что распознавание перезапустится даже при ошибке
+      console.error('❌ Ошибка:', error);
       if (this.isListening) {
-        setTimeout(() => {
-          try {
-            this.recognition.start();
-          } catch (error) {
-            console.error('❌ Ошибка при перезапуске распознавания после ошибки:', error);
-          }
-        }, 100);
+        setTimeout(() => this.recognition.start(), 100);
       }
     }
   }
@@ -191,10 +199,8 @@ export class OpenAIAssistant {
 
         console.log('✅ Доступ к микрофону получен');
         
-        await this.initialize();
         console.log('▶️ Запуск прослушивания...');
         
-        // Запускаем таймер обновления контекста
         this.updateTimer = setInterval(async () => {
           if (this.transcriptBuffer.length > 0) {
             console.log('⏰ Таймер: обновляем контекст...');
@@ -227,8 +233,10 @@ export class OpenAIAssistant {
   }
 
   async initialize() {
-    this.thread = await this.openai.beta.threads.create();
-    console.log('🧵 Thread created:', this.thread.id);
+    if (!this.thread) {
+      this.thread = await this.openai.beta.threads.create();
+      console.log('🧵 Thread created:', this.thread.id);
+    }
   }
 
   async getResponse(message: string): Promise<string> {
@@ -252,25 +260,51 @@ export class OpenAIAssistant {
         runId
       );
 
-      if (run.status === 'completed') {
-        const messages = await this.openai.beta.threads.messages.list(
-          this.thread.id
-        );
-        
-        const lastMessage = messages.data
-          .filter(msg => msg.role === 'assistant')[0];
+      console.log('🔄 Статус выполнения:', run.status);
+
+      switch (run.status) {
+        case 'completed':
+          const messages = await this.openai.beta.threads.messages.list(
+            this.thread.id
+          );
           
-        if (lastMessage && lastMessage.content[0].type === 'text') {
-          return lastMessage.content[0].text.value;
-        }
-        return 'No response';
-      }
+          const lastMessage = messages.data
+            .filter(msg => msg.role === 'assistant')[0];
+            
+          if (lastMessage && lastMessage.content[0].type === 'text') {
+            return lastMessage.content[0].text.value;
+          }
+          return 'No response';
 
-      if (run.status === 'failed') {
-        throw new Error('Assistant run failed');
-      }
+        case 'failed':
+          console.error('❌ Run failed:', {
+            error: run.last_error,
+            status: run.status,
+            id: run.id
+          });
+          throw new Error(`Assistant run failed: ${run.last_error?.message || 'Unknown error'}`);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+        case 'requires_action':
+          console.log('⚡ Run requires action:', run.required_action);
+          // Здесь можно добавить обработку required_action если нужно
+          break;
+
+        case 'expired':
+          throw new Error('Assistant run expired');
+
+        case 'cancelled':
+          throw new Error('Assistant run was cancelled');
+
+        case 'in_progress':
+        case 'queued':
+          // Продолжаем ждать
+          await new Promise(resolve => setTimeout(resolve, 500));
+          break;
+
+        default:
+          console.warn('⚠️ Неизвестный статус:', run.status);
+          await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 
@@ -300,17 +334,17 @@ export class OpenAIAssistant {
       console.log('📝 Создаем новый файл транскрипции...');
       console.log("КОНТЕНТ ФАЙЛА:", fullTranscript);
       
-      // Создаем файл и FormData
+      // Создаем файл
       const blob = new Blob([fullTranscript], { type: 'text/plain' });
       const formData = new FormData();
       formData.append('purpose', 'assistants');
       formData.append('file', blob, 'transcript.txt');
 
-      // Отправляем запрос напрямую через fetch
       const response = await fetch('https://api.openai.com/v1/files', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.openai.apiKey}`,
+          "OpenAI-Beta": `assistants=v2`
         },
         body: formData
       });
@@ -322,20 +356,34 @@ export class OpenAIAssistant {
       const newFile = await response.json();
       console.log('✅ Новый файл создан:', newFile.id);
 
+      const vectorStoreId = import.meta.env.VITE_OPENAI_VECTOR_STORE;
+
+      // Если есть старый файл, удаляем его из vector store и OpenAI
       if (this.fileId) {
-        console.log('🗑️ Удаляем старый файл:', this.fileId);
+        console.log('🗑️ Удаляем старый файл из vector store:', this.fileId);
         try {
+          await this.openai.beta.vectorStores.files.del(
+            vectorStoreId,
+            this.fileId
+          );
+          console.log('✅ Файл удален из vector store');
+          
           await this.openai.files.del(this.fileId);
-          console.log('✅ Старый файл удален');
+          console.log('✅ Файл удален из OpenAI');
         } catch (error) {
           console.error('⚠️ Ошибка при удалении старого файла:', error);
         }
       }
 
-      console.log('🔄 Обновляем ассистента с новым файлом...');
-      await this.openai.beta.assistants.update(this.assistantId, {
-        file_ids: [newFile.id]
-      });
+      // Добавляем новый файл в vector store
+      console.log('📥 Добавляем файл в vector store...');
+      await this.openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        {
+          file_id: newFile.id
+        }
+      );
+      console.log('✅ Файл добавлен в vector store');
 
       this.fileId = newFile.id;
       console.log('✅ Контекст успешно обновлен, новый файл:', newFile.id);
@@ -348,5 +396,25 @@ export class OpenAIAssistant {
   private async checkAndUpdateContext(newText: string) {
     this.transcriptBuffer.push(newText);
     console.log('📝 Добавлен новый текст, всего в буфере:', this.transcriptBuffer.length);
+  }
+
+  async *streamResponse(userMessage: string) {
+    // Сразу начинаем проверять новые сообщения
+    while (response.status === 'queued' || response.status === 'in_progress') {
+      const messages = await this.openai.beta.threads.messages.list(this.thread.id);
+      
+      // Отдаем каждое новое сообщение сразу через yield
+      for (const message of messages.data) {
+        if (message.role === 'assistant' && message.id !== lastMessageId) {
+          lastMessageId = message.id;
+          if (message.content[0]?.type === 'text') {
+            yield message.content[0].text.value;
+          }
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      response = await this.openai.beta.threads.runs.retrieve(this.thread.id, run.id);
+    }
   }
 } 

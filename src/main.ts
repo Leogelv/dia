@@ -102,7 +102,7 @@ async function initializeAvatarSession() {
     
     while (retryCount < maxRetries) {
       try {
-        debugLog('🎭 Создаем экземпляр StreamingAvatar (попытка ${retryCount + 1}/${maxRetries})');
+        debugLog(`🎭 Создаем экземпляр StreamingAvatar (попытка ${retryCount + 1}/${maxRetries})`);
         avatar = new StreamingAvatar({ token });
 
         // Добавляем слушатели событий стрима
@@ -117,7 +117,10 @@ async function initializeAvatarSession() {
         sessionData = await avatar.createStartAvatar({
           quality: AvatarQuality.High,
           avatarName: "default",
-          language: "Russian",
+          voice: {
+            voiceId: "bc69c9589d6747028dc5ec4aec2b43c3"
+          }
+          //language: "Russian"
         });
 
         if (!sessionData) {
