@@ -77,13 +77,6 @@ export class RealtimeLLM {
       this.recognition.stop();
 
       try {
-        // Промежуточный ответ
-        const waitingResponse = await this.generateWaitingResponse(cleanCommand);
-        await window.avatar?.speak({
-          text: waitingResponse,
-          task_type: TaskType.REPEAT
-        });
-
         // Первый запрос к GPT для выбора функции
         const response = await this.openai.chat.completions.create({
           model: "gpt-4-1106-preview",
@@ -135,6 +128,13 @@ export class RealtimeLLM {
 
           console.log('🔧 Вызываем функцию с аргументами:', { query });
 
+          // Промежуточный ответ только при поиске в базе знаний
+          const waitingResponse = await this.generateWaitingResponse(cleanCommand);
+          await window.avatar?.speak({
+            text: waitingResponse,
+            task_type: TaskType.REPEAT
+          });
+
           // Собираем ответ из стрима в строку
           let functionResponse = '';
           for await (const chunk of this.assistant.streamResponse(query)) {
@@ -153,14 +153,14 @@ export class RealtimeLLM {
 
           console.log('📝 Ответ от функции:', functionResponse);
 
-          // Сразу отправляем ответ функции аватару
+          // Отправляем ответ функции аватару
           await window.avatar?.speak({
             text: functionResponse,
             task_type: TaskType.REPEAT
           });
 
         } else {
-          // Если GPT решил ответить сам
+          // Если GPT решил ответить сам - сразу отвечаем без промежуточной фразы
           const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
           await window.avatar?.speak({
             text: simpleResponse,
