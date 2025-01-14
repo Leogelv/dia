@@ -6,6 +6,14 @@ import StreamingAvatar, {
 } from "@heygen/streaming-avatar";
 import { RealtimeLLM } from './realtime-llm';
 import { logger } from './utils/logger';
+import { OpenAIAssistant } from './openai-assistant';
+
+// В начале файла
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  console.log('✅ Браузер поддерживает Web Speech API');
+} else {
+  console.error('❌ Браузер не поддерживает Web Speech API');
+}
 
 // Конфигурация
 const CONFIG = {
@@ -18,14 +26,13 @@ const CONFIG = {
 const videoElement = document.getElementById("avatarVideo") as HTMLVideoElement;
 const startButton = document.getElementById("startSession") as HTMLButtonElement;
 const endButton = document.getElementById("endSession") as HTMLButtonElement;
-const speakButton = document.getElementById("speakButton") as HTMLButtonElement;
-const userInput = document.getElementById("userInput") as HTMLInputElement;
 const statusText = document.querySelector(".status-text") as HTMLSpanElement;
 const downloadLogsButton = document.getElementById("downloadLogs") as HTMLButtonElement;
 
 let avatar: StreamingAvatar | null = null;
 let sessionData: any = null;
 let llm: RealtimeLLM | null = null;
+let openAIAssistant: OpenAIAssistant | null = null;
 
 // Улучшенное логирование
 function debugLog(message: string, data?: any) {
@@ -74,6 +81,12 @@ async function initializeAvatarSession() {
     
     // Принудительно завершаем ВСЕ сессии перед стартом
     await terminateAllSessions();
+    
+    // Инициализируем OpenAI Assistant для голосового управления
+    debugLog('🎤 Инициализация голосового ассистента');
+    openAIAssistant = new OpenAIAssistant(CONFIG.OPENAI_API_KEY, CONFIG.ASSISTANT_ID);
+    await openAIAssistant.initialize();
+    openAIAssistant.startListening();
     
     // Инициализируем LLM
     debugLog('🤖 Инициализация LLM');
@@ -132,6 +145,9 @@ async function initializeAvatarSession() {
     avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
     
     statusText.textContent = "ИИ Активен";
+
+    window.avatar = avatar;
+    window.llm = llm;
   } catch (error) {
     debugLog('❌ Ошибка инициализации:', error);
     handleError(error);
@@ -169,6 +185,13 @@ async function terminateAvatarSession() {
     debugLog('🛑 Завершаем сессию');
     statusText.textContent = "Отключение...";
     
+    // Останавливаем голосовое распознавание
+    if (openAIAssistant) {
+      openAIAssistant.stopListening();
+      await openAIAssistant.cleanup();
+      openAIAssistant = null;
+    }
+    
     if (llm) {
       await llm.cleanup();
       llm = null;
@@ -186,76 +209,6 @@ async function terminateAvatarSession() {
   } catch (error) {
     debugLog('❌ Ошибка при завершении сессии:', error);
     handleError(error);
-  }
-}
-
-// Handle speaking event
-async function handleSpeak() {
-  if (!avatar || !llm || !userInput.value) return;
-
-  try {
-    debugLog('💬 Обработка сообщения');
-    speakButton.disabled = true;
-    statusText.textContent = "Обработка...";
-    
-    const userMessage = userInput.value;
-    debugLog('📤 Сообщение пользователя:', userMessage);
-    userInput.value = "";
-    
-    debugLog('🤖 Начинаем стриминг ответа');
-    let hasResponse = false;
-    
-    // Буфер для накопления чанков
-    let textBuffer = '';
-    const punctuation = /[.!?,:;]/;
-    
-    // Получаем стрим ответов
-    for await (const chunk of llm.streamResponse(userMessage)) {
-      hasResponse = true;
-      debugLog('📥 Получен чанк:', chunk);
-      
-      textBuffer += chunk;
-      
-      // Если встретили знак пунктуации или буфер достаточно большой - отправляем
-      if (punctuation.test(chunk) || textBuffer.length > 50) {
-        debugLog('🗣️ Отправляем текст аватару:', textBuffer);
-        statusText.textContent = "Говорю...";
-        
-        try {
-          await avatar.speak({
-            text: textBuffer.trim(),
-            task_type: TaskType.REPEAT,
-          });
-          debugLog('✅ Фраза успешно отправлена');
-          textBuffer = ''; // Очищаем буфер
-        } catch (speakError) {
-          debugLog('❌ Ошибка при отправке фразы:', speakError);
-          throw speakError;
-        }
-      }
-    }
-    
-    // Отправляем остаток текста, если есть
-    if (textBuffer.trim()) {
-      debugLog('🗣️ Отправляем финальный текст:', textBuffer);
-      await avatar.speak({
-        text: textBuffer.trim(),
-        task_type: TaskType.REPEAT,
-      });
-    }
-    
-    if (!hasResponse) {
-      debugLog('⚠️ Не получено ни одного ответа от LLM');
-      throw new Error('Нет ответа от LLM');
-    }
-    
-    debugLog('✅ Стриминг завершен');
-    statusText.textContent = "ИИ Готов";
-  } catch (error) {
-    debugLog('❌ Ошибка при обработке:', error);
-    handleError(error);
-  } finally {
-    speakButton.disabled = false;
   }
 }
 
@@ -277,15 +230,7 @@ async function fetchAccessToken(): Promise<string> {
 // Event listeners
 startButton.addEventListener("click", initializeAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
-speakButton.addEventListener("click", handleSpeak);
 downloadLogsButton.addEventListener("click", () => logger.downloadLogs());
-
-// Handle Enter key in input
-userInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter" && !speakButton.disabled) {
-    handleSpeak();
-  }
-});
 
 // Функция обработки ошибок
 function handleError(error: any) {
