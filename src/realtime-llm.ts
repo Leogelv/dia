@@ -90,7 +90,7 @@ export class RealtimeLLM {
           messages: [
             {
               role: "system",
-              content: "Ты дружелюбный русскоговорящий ассистент. Используй функцию get_assistant_response для поиска информации в базе знаний."
+              content: "Ты дружелюбный русскоговорящий ассистент. Используй функцию get_assistant_response для поиска информации в базе знаний. Отвечай развернуто и подробно."
             },
             { role: "user", content: cleanCommand }
           ],
@@ -153,28 +153,12 @@ export class RealtimeLLM {
 
           console.log('📝 Ответ от функции:', functionResponse);
 
-          // Второй запрос с результатом функции
-          const secondResponse = await this.openai.chat.completions.create({
-            model: "gpt-4-1106-preview",
-            messages: [
-              {
-                role: "system",
-                content: "Ты дружелюбный русскоговорящий ассистент. Используй информацию из базы знаний для ответа."
-              },
-              { role: "user", content: cleanCommand },
-              response.choices[0].message,
-              {
-                role: "tool",
-                tool_call_id: toolCall.id,
-                content: functionResponse
-              }
-            ]
-          });
-
+          // Сразу отправляем ответ функции аватару
           await window.avatar?.speak({
-            text: secondResponse.choices[0]?.message?.content || "Извини, я не смог обработать ответ из базы знаний",
+            text: functionResponse,
             task_type: TaskType.REPEAT
           });
+
         } else {
           // Если GPT решил ответить сам
           const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";

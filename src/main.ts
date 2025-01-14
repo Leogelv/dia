@@ -103,7 +103,9 @@ async function initializeAvatarSession() {
           quality: AvatarQuality.High,
           avatarName: "default",
           voice: {
-            voiceId: "bc69c9589d6747028dc5ec4aec2b43c3"
+            voiceId: "bc69c9589d6747028dc5ec4aec2b43c3",
+            stability: 0.75, 
+            variation: 0.5 
           }
         });
 
