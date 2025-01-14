@@ -21,6 +21,19 @@ export class RealtimeLLM {
     });
     this.assistant = new OpenAIAssistant(apiKey, assistantId);
     this.initSpeechRecognition();
+
+    // Слушаем события аватара
+    (window as any).avatar?.on('speaking_started', () => {
+      console.log('🗣️ Аватар начал говорить - отключаем микрофон');
+      this.stopListening();
+    });
+
+    (window as any).avatar?.on('speaking_ended', () => {
+      console.log('🤐 Аватар закончил говорить - включаем микрофон');
+      if (!this.isSpeaking) {
+        this.startListening();
+      }
+    });
   }
 
   private initSpeechRecognition() {
@@ -170,16 +183,12 @@ export class RealtimeLLM {
 
       } finally {
         this.isSpeaking = false;
-        if (this.isListening) {
-          setTimeout(() => this.recognition.start(), 100);
-        }
+        // Не включаем микрофон здесь - он включится по событию speaking_ended
       }
     } catch (error) {
       console.error('❌ Ошибка обработки команды:', error);
       this.isSpeaking = false;
-      if (this.isListening) {
-        setTimeout(() => this.recognition.start(), 100);
-      }
+      // Не включаем микрофон здесь - он включится по событию speaking_ended
     }
   }
 
