@@ -139,16 +139,14 @@ export class RealtimeLLM {
 
         // Запускаем генерацию промежуточного ответа параллельно
         console.log(`[${new Date().toLocaleTimeString()}] 🤔 Генерируем промежуточную фразу...`);
-        const waitingResponsePromise = this.generateWaitingResponse(cleanCommand);
+        const waitingResponse = await this.generateWaitingResponse(cleanCommand);
 
         // Начинаем стримить ответ сразу
         console.log(`[${new Date().toLocaleTimeString()}] 📡 Начинаем стримить основной ответ...`);
         const responseStream = this.assistant.streamResponse(query);
         
-        // Дожидаемся промежуточного ответа и озвучиваем его
-        const waitingResponse = await waitingResponsePromise;
-        console.log(`[${new Date().toLocaleTimeString()}] 💭 Промежуточная фраза готова:`, waitingResponse);
-        console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем промежуточную фразу`);
+        // Озвучиваем промежуточную фразу целиком
+        console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем промежуточную фразу целиком`);
         await window.avatar?.speak({
           text: waitingResponse,
           task_type: TaskType.REPEAT
@@ -231,18 +229,20 @@ export class RealtimeLLM {
       messages: [
         {
           role: "system",
-          content: "ты типа развлекалка: генерируешь предложение для промежуточного ответа на чистом языке запроса (русский/английский/казахский) без смайликов и специальных символов пока юзер ждет ответ от openai assistant."
+          content: "ты типа развлекалка: генерируешь одно короткое предложение для промежуточного ответа на чистом языке запроса (русский/английский/казахский) без смайликов и специальных символов пока юзер ждет ответ от openai assistant."
         },
         { 
           role: "user", 
-          content: `Сгенерируй промежуточную фразу для запроса: "${query}" на 1-2 предложения`
+          content: `Сгенерируй одну короткую промежуточную фразу для запроса: "${query}"`
         }
       ],
       temperature: 0.7,
-      max_tokens: 20
+      max_tokens: 50
     });
 
-    return response.choices[0]?.message?.content || "Сейчас посмотрю";
+    const waitingResponse = response.choices[0]?.message?.content?.trim() || "Сейчас посмотрю";
+    console.log(`[${new Date().toLocaleTimeString()}] 💭 Сгенерирована промежуточная фраза (${waitingResponse.length} символов):`, waitingResponse);
+    return waitingResponse;
   }
 
   async initialize() {
