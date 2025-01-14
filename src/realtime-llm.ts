@@ -237,7 +237,7 @@ export class RealtimeLLM {
         }
       ],
       temperature: 0.7,
-      max_tokens: 50
+      max_tokens: 150
     });
 
     const waitingResponse = response.choices[0]?.message?.content?.trim() || "Сейчас посмотрю";
