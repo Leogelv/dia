@@ -26,6 +26,10 @@ export class OpenAIAssistant {
       throw new Error('Assistant not initialized');
     }
 
+    // Получаем текущие сообщения до запроса
+    const beforeMessages = await this.openai.beta.threads.messages.list(this.thread.id);
+    const beforeMessageIds = new Set(beforeMessages.data.map(m => m.id));
+
     // Добавляем сообщение пользователя
     await this.openai.beta.threads.messages.create(this.thread.id, {
       role: "user",
@@ -37,9 +41,7 @@ export class OpenAIAssistant {
       assistant_id: this.assistantId
     });
 
-    let lastMessageId = null;
-
-    // Стримим ответ в реальном времени
+    // Ждем завершения
     while (true) {
       const runStatus = await this.openai.beta.threads.runs.retrieve(
         this.thread.id,
@@ -47,6 +49,18 @@ export class OpenAIAssistant {
       );
 
       if (runStatus.status === 'completed') {
+        // Получаем все сообщения после завершения
+        const afterMessages = await this.openai.beta.threads.messages.list(this.thread.id);
+        
+        // Фильтруем только новые сообщения
+        const newMessages = afterMessages.data.filter(m => !beforeMessageIds.has(m.id));
+        
+        // Возвращаем текст из новых сообщений
+        for (const message of newMessages) {
+          if (message.role === 'assistant' && message.content[0]?.type === 'text') {
+            yield message.content[0].text.value;
+          }
+        }
         break;
       }
 
@@ -54,20 +68,7 @@ export class OpenAIAssistant {
         throw new Error(`Run failed: ${runStatus.last_error?.message || 'Unknown error'}`);
       }
 
-      // Получаем новые сообщения
-      const messages = await this.openai.beta.threads.messages.list(this.thread.id);
-      
-      // Проверяем новые сообщения
-      for (const message of messages.data) {
-        if (message.role === 'assistant' && message.id !== lastMessageId) {
-          lastMessageId = message.id;
-          if (message.content[0]?.type === 'text') {
-            yield message.content[0].text.value;
-          }
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 
