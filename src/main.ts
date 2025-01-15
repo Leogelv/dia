@@ -214,7 +214,7 @@ async function fetchAccessToken(): Promise<string> {
 // Event listeners
 startButton.addEventListener("click", initializeAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
-downloadLogsButton.addEventListener("click", () => logger.downloadLogs());
+//downloadLogsButton.addEventListener("click", () => logger.downloadLogs());
 
 // Функция обработки ошибок
 function handleError(error: any) {

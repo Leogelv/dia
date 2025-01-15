@@ -1,10 +1,17 @@
 import OpenAI from 'openai';
+import { YandexSpeechRecognition } from './yandex-speechkit';
 
 export class OpenAIAssistant {
   private openai: OpenAI;
   private assistantId: string;
   private thread: any = null;
+  private recognition: YandexSpeechRecognition;
+  private isListening: boolean = false;
+  private transcriptBuffer: string[] = [];
+  private lastUpdateTime: number = Date.now();
+  private readonly UPDATE_INTERVAL = 0.5 * 60 * 1000; // 5 минут
   private fileId: string | null = null;
+  private updateTimer: NodeJS.Timer | null = null;
 
   constructor(apiKey: string, assistantId: string) {
     this.openai = new OpenAI({
@@ -12,6 +19,141 @@ export class OpenAIAssistant {
       dangerouslyAllowBrowser: true
     });
     this.assistantId = assistantId;
+    
+    this.recognition = new YandexSpeechRecognition(
+      import.meta.env.VITE_YANDEX_API_KEY
+    );
+
+    this.recognition.onResult(async (text) => {
+      console.log('🗣 Распознанный текст:', text);
+      
+      // Добавляем текст в буфер
+      await this.checkAndUpdateContext(text);
+      
+      const keywords = ['ассистент', 'assistant'];
+      const hasKeyword = keywords.some(keyword => text.toLowerCase().includes(keyword));
+      
+      if (hasKeyword) {
+        await this.processVoiceCommand(text);
+      }
+    });
+
+    this.recognition.onError((error) => {
+      console.error('❌ Ошибка распознавания речи:', error);
+    });
+  }
+
+  private async checkAndUpdateContext(text: string) {
+    this.transcriptBuffer.push(text);
+    console.log('📝 Добавлен текст в буфер, размер:', this.transcriptBuffer.length);
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this.lastUpdateTime;
+    console.log(`⏱ Время с последнего обновления: ${Math.round(timeSinceLastUpdate / 1000)}с`);
+
+    if (timeSinceLastUpdate >= this.UPDATE_INTERVAL) {
+      console.log('⏰ Обновляем контекст...');
+      await this.updateTranscriptFile();
+      this.lastUpdateTime = now;
+      // Очищаем буфер после успешного обновления
+      this.transcriptBuffer = [];
+    }
+  }
+
+  private async updateTranscriptFile() {
+    try {
+      if (this.transcriptBuffer.length === 0) {
+        console.log('📝 Буфер пуст, пропускаем обновление');
+        return;
+      }
+
+      const fullTranscript = this.transcriptBuffer.join('\n');
+      console.log('📝 Создаем новый файл транскрипции:', fullTranscript);
+      
+      const vectorStoreId = import.meta.env.VITE_OPENAI_VECTOR_STORE;
+      
+      // Создаем файлРаспознано
+      const blob = new Blob([fullTranscript], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('purpose', 'file-search');
+      formData.append('file', blob, 'transcript.txt');
+
+      const response = await fetch('https://api.openai.com/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openai.apiKey}`,
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const newFile = await response.json();
+      console.log('✅ Новый файл создан:', newFile.id);
+
+      // Если есть старый файл, удаляем его
+      if (this.fileId) {
+        console.log('🗑️ Удаляем старый файл из vector store:', this.fileId);
+        await this.openai.beta.vectorStores.files.del(
+          vectorStoreId,
+          this.fileId
+        );
+        await this.openai.files.del(this.fileId);
+      }
+
+      // Добавляем новый файл в vector store
+      await this.openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        {
+          file_id: newFile.id
+        }
+      );
+
+      this.fileId = newFile.id;
+      console.log('✅ Контекст успешно обновлен');
+    } catch (error) {
+      console.error('❌ Ошибка при обновлении контекста:', error);
+      throw error;
+    }
+  }
+
+  public async startListening() {
+    if (!this.isListening) {
+      try {
+        await this.recognition.start();
+        this.isListening = true;
+        console.log('✅ Распознавание речи запущено');
+        
+        // Запускаем таймер обновления контекста
+        this.updateTimer = setInterval(async () => {
+          if (this.transcriptBuffer.length > 0) {
+            await this.updateTranscriptFile();
+            this.lastUpdateTime = Date.now();
+          }
+        }, this.UPDATE_INTERVAL);
+        
+      } catch (error) {
+        console.error('❌ Ошибка при запуске распознавания:', error);
+        this.isListening = false;
+        throw error;
+      }
+    }
+  }
+
+  public stopListening() {
+    if (this.isListening) {
+      this.recognition.stop();
+      this.isListening = false;
+      
+      if (this.updateTimer) {
+        clearInterval(this.updateTimer);
+        this.updateTimer = null;
+      }
+      
+      console.log('✅ Распознавание речи остановлено');
+    }
   }
 
   async initialize() {
@@ -38,7 +180,7 @@ export class OpenAIAssistant {
 
     // Запускаем ассистента
     const run = await this.openai.beta.threads.runs.create(this.thread.id, {
-      assistant_id: this.assistantId
+      assistant_id: this.assistantId,
     });
 
     // Ждем завершения
@@ -58,6 +200,8 @@ export class OpenAIAssistant {
         // Возвращаем текст из новых сообщений
         for (const message of newMessages) {
           if (message.role === 'assistant' && message.content[0]?.type === 'text') {
+            console.log('🤖 Ответ от ассистента:', message.content[0].text.value);
+            
             yield message.content[0].text.value;
           }
         }
@@ -69,41 +213,6 @@ export class OpenAIAssistant {
       }
 
       await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  }
-
-  async updateContext(text: string) {
-    try {
-      // Создаем файл
-      const blob = new Blob([text], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('purpose', 'assistants');
-      formData.append('file', blob, 'context.txt');
-
-      const response = await fetch('https://api.openai.com/v1/files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.openai.apiKey}`,
-          "OpenAI-Beta": `assistants=v2`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const newFile = await response.json();
-
-      // Если есть старый файл, удаляем его
-      if (this.fileId) {
-        await this.openai.files.del(this.fileId);
-      }
-
-      this.fileId = newFile.id;
-    } catch (error) {
-      console.error('❌ Ошибка при обновлении контекста:', error);
-      throw error;
     }
   }
 

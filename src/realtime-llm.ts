@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+
 import { OpenAIAssistant } from './openai-assistant';
 import { TaskType } from "@heygen/streaming-avatar";
 
@@ -13,6 +14,15 @@ export class RealtimeLLM {
   private recognition: any;
   private isListening: boolean = false;
   private isSpeaking: boolean = false;
+  private transcriptBuffer: string[] = [];
+
+  private lastUpdateTime: number = Date.now();
+
+  private readonly UPDATE_INTERVAL = 0.5 * 60 * 1000; // 5 минут
+
+  private fileId: string | null = null;
+
+  private updateTimer: NodeJS.Timer | null = null;
 
   constructor(apiKey: string, assistantId: string) {
     this.openai = new OpenAI({
@@ -33,7 +43,10 @@ export class RealtimeLLM {
     // Модифицируем обработку результатов распознавания
     this.recognition.onresult = async (event: any) => {
       const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-      console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано:`, text);
+      console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано1:`, text);
+      // Добавляем текст в буфер
+
+      await this.checkAndUpdateContext(text);
       
       // Проверяем на ключевое слово
       if (text.includes('ассистент') || text.includes('assistant')) {
@@ -48,7 +61,86 @@ export class RealtimeLLM {
       setTimeout(() => this.recognition.start(), 100);
     };
   }
+  
+  private async checkAndUpdateContext(text: string) {
 
+    this.transcriptBuffer.push(text);
+
+    console.log('📝 Добавлен текст в буфер, размер:', this.transcriptBuffer.length);
+
+
+
+    const now = Date.now();
+
+    if (now - this.lastUpdateTime >= this.UPDATE_INTERVAL) {
+
+      console.log('⏰ Обновляем контекст...');
+
+      await this.updateTranscriptFile();
+
+      this.lastUpdateTime = now;
+
+    }
+
+  }
+  private async updateTranscriptFile() {
+    try {
+      if (this.transcriptBuffer.length === 0) {
+        console.log('📝 Буфер пуст, пропускаем обновление');
+        return;
+      }
+
+      const fullTranscript = this.transcriptBuffer.join('\n');
+      console.log('📝 Создаем новый файл транскрипции:', fullTranscript);
+      
+      const vectorStoreId = import.meta.env.VITE_OPENAI_VECTOR_STORE;
+      
+      // Создаем файлРаспознано
+      const blob = new Blob([fullTranscript], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('purpose', 'assistants');
+      formData.append('file', blob, 'transcript.txt');
+
+      const response = await fetch('https://api.openai.com/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openai.apiKey}`,
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const newFile = await response.json();
+      console.log('✅ Новый файл создан:', newFile.id);
+
+      // Если есть старый файл, удаляем его
+      if (this.fileId) {
+        console.log('🗑️ Удаляем старый файл из vector store:', this.fileId);
+        await this.openai.beta.vectorStores.files.del(
+          vectorStoreId,
+          this.fileId
+        );
+        await this.openai.files.del(this.fileId);
+      }
+
+      // Добавляем новый файл в vector store
+      await this.openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        {
+          file_id: newFile.id
+        }
+      );
+
+      this.fileId = newFile.id;
+      console.log('✅ Контекст успешно обновлен');
+    } catch (error) {
+      console.error('❌ Ошибка при обновлении контекста:', error);
+      throw error;
+    }
+  }
   private initSpeechRecognition() {
     try {
       if (!(window as any).webkitSpeechRecognition && !(window as any).SpeechRecognition) {
@@ -77,7 +169,7 @@ export class RealtimeLLM {
 
       this.recognition.onresult = async (event: any) => {
         const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано:`, text);
+        console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано2:`, text);
         
         // Проверяем на ключевое слово
         if (text.includes('ассистент') || text.includes('assistant')) {
@@ -253,6 +345,17 @@ export class RealtimeLLM {
   startListening() {
     if (!this.isListening) {
       this.recognition.start();
+      this.updateTimer = setInterval(async () => {
+
+          if (this.transcriptBuffer.length > 0) {
+
+            await this.updateTranscriptFile();
+
+            this.lastUpdateTime = Date.now();
+
+          }
+
+        }, this.UPDATE_INTERVAL);
     }
   }
 
@@ -260,6 +363,10 @@ export class RealtimeLLM {
     if (this.isListening) {
       this.recognition.stop();
       this.isListening = false;
+      if (this.updateTimer) {
+        clearInterval(this.updateTimer);
+        this.updateTimer = null;
+      }
     }
   }
 
