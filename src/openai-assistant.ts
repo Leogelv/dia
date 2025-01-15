@@ -163,6 +163,11 @@ export class OpenAIAssistant {
     }
   }
 
+  private cleanText(text: string): string {
+    // Удаляем ссылки на документы, например, 【4:0†source】
+    return text.replace(/【\d+:\d+†source】/g, '').trim();
+  }
+
   async *streamResponse(message: string) {
     if (!this.thread) {
       throw new Error('Assistant not initialized');
@@ -200,9 +205,10 @@ export class OpenAIAssistant {
         // Возвращаем текст из новых сообщений
         for (const message of newMessages) {
           if (message.role === 'assistant' && message.content[0]?.type === 'text') {
-            console.log('🤖 Ответ от ассистента:', message.content[0].text.value);
+            const cleanText = this.cleanText(message.content[0].text.value);
+            console.log('🤖 Ответ от ассистента:', cleanText);
             
-            yield message.content[0].text.value;
+            yield cleanText;
           }
         }
         break;

@@ -18,7 +18,7 @@ export class RealtimeLLM {
 
   private lastUpdateTime: number = Date.now();
 
-  private readonly UPDATE_INTERVAL = 0.5 * 60 * 1000; // 5 минут
+  private readonly UPDATE_INTERVAL = 3 * 60 * 1000; // 5 минут
 
   private fileId: string | null = null;
 
