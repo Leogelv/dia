@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, 
+  //useState 
+} from 'react';
 import './App.css';
 import { initializeAvatarSession, terminateAvatarSession } from './main';
 
 function App() {
-  const [isSessionActive, setIsSessionActive] = useState(false);
+  //const [isSessionActive, setIsSessionActive] = useState(false);
 
   useEffect(() => {
     const startButton = document.getElementById("startSession");
@@ -14,7 +16,7 @@ function App() {
       startButton.addEventListener("click", async () => {
         try {
           await initializeAvatarSession();
-          setIsSessionActive(true);
+          //setIsSessionActive(true);
         } catch (error) {
           console.error('Failed to start session:', error);
         }
@@ -23,7 +25,7 @@ function App() {
       endButton.addEventListener("click", async () => {
         try {
           await terminateAvatarSession();
-          setIsSessionActive(false);
+          //setIsSessionActive(false);
         } catch (error) {
           console.error('Failed to end session:', error);
         }

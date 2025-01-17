@@ -7,7 +7,7 @@ interface AssistantControlProps {
   assistantId: string;
 }
 
-export const AssistantControl: React.FC<AssistantControlProps> = ({ apiKey, assistantId }) => {
+export const AssistantControl: React.FC<AssistantControlProps> = ({ apiKey, assistantId }: {apiKey: string, assistantId: string}) => {
   const [assistant, setAssistant] = useState<OpenAIAssistant | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
 
@@ -30,7 +30,7 @@ export const AssistantControl: React.FC<AssistantControlProps> = ({ apiKey, assi
       if (assistant) {
         console.log('🧹 Очистка ресурсов ассистента');
         assistant.cleanup();
-        assistant.stopListening();
+        //assistant.stopListening();
       }
     };
   }, [apiKey, assistantId]);
@@ -39,7 +39,7 @@ export const AssistantControl: React.FC<AssistantControlProps> = ({ apiKey, assi
     if (assistant && !isSessionActive) {
       try {
         console.log('▶️ Запуск сессии...');
-        await assistant.startListening();
+        //await assistant.startListening();
         setIsSessionActive(true);
         console.log('✅ Сессия успешно запущена');
       } catch (error) {
@@ -52,7 +52,7 @@ export const AssistantControl: React.FC<AssistantControlProps> = ({ apiKey, assi
   const handleStopSession = () => {
     if (assistant && isSessionActive) {
       console.log('⏹️ Остановка сессии...');
-      assistant.stopListening();
+      //assistant.stopListening();
       setIsSessionActive(false);
       console.log('✅ Сессия остановлена');
     }

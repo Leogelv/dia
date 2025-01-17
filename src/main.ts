@@ -2,7 +2,7 @@ import './style.css';
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
-  TaskType,
+  //TaskType,
   VoiceEmotion
 } from "@heygen/streaming-avatar";
 import { RealtimeLLM } from './realtime-llm';
@@ -20,7 +20,7 @@ const videoElement = document.getElementById("avatarVideo") as HTMLVideoElement;
 const startButton = document.getElementById("startSession") as HTMLButtonElement;
 const endButton = document.getElementById("endSession") as HTMLButtonElement;
 const statusText = document.querySelector(".status-text") as HTMLSpanElement;
-const downloadLogsButton = document.getElementById("downloadLogs") as HTMLButtonElement;
+//const downloadLogsButton = document.getElementById("downloadLogs") as HTMLButtonElement;
 
 let avatar: StreamingAvatar | null = null;
 let sessionData: any = null;
@@ -74,7 +74,7 @@ async function terminateAllSessions() {
 }
 
 // Initialize streaming avatar session
-async function initializeAvatarSession() {
+export async function initializeAvatarSession() {
   try {
     debugLog('🚀 Начинаем инициализацию');
     statusText.textContent = "Подключение...";
@@ -125,12 +125,12 @@ async function initializeAvatarSession() {
 
         // Если дошли сюда, значит всё ок
         break;
-      } catch (error) {
+      } catch (error: unknown) {
         retryCount++;
-        if (error.message?.includes('Concurrent limit reached') && retryCount < maxRetries) {
+        if (error instanceof Error && error.message?.includes('Concurrent limit reached') && retryCount < maxRetries) {
           debugLog(`⚠️ Concurrent limit error, retrying... (${retryCount}/${maxRetries})`);
           await terminateAllSessions();
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Увеличиваем задержку с каждой попыткой
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
         } else {
           throw error;
         }
@@ -140,8 +140,10 @@ async function initializeAvatarSession() {
     debugLog('✅ Инициализация завершена', sessionData);
 
     toggleSessionButtons(true);
-    avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
-    avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
+    if (avatar) {
+        avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
+        avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
+    }
     
     statusText.textContent = "ИИ Активен";
 
@@ -177,7 +179,7 @@ function handleStreamDisconnected() {
 }
 
 // End the avatar session
-async function terminateAvatarSession() {
+export async function terminateAvatarSession() {
   if (!avatar || !sessionData) return;
 
   try {

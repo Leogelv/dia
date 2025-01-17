@@ -17,11 +17,11 @@ export class RealtimeLLM {
   private assistant: OpenAIAssistant;
   private webSocket: WebSocketService;
   private isListening: boolean = false;
-  private isSpeaking: boolean = false;
+  //private isSpeaking: boolean = false;
   private transcriptBuffer: string[] = [];
   private lastUpdateTime: number = Date.now();
   private readonly UPDATE_INTERVAL = 3 * 60 * 1000; // 3 минуты
-  private updateTimer: NodeJS.Timer | null = null;
+  private updateTimer: number | null = null;
 
   // Аудио компоненты
   private audioContext: AudioContext | null = null;
@@ -121,7 +121,7 @@ export class RealtimeLLM {
 
   private async handleCommand(command: string) {
     try {
-      this.isSpeaking = true;
+      //this.isSpeaking = true;
       // Очищаем команду от всех возможных ключевых слов
       const cleanCommand = command.replace(/дия|диа|dia|diya|ассистент|assistant/gi, '').trim();
       
@@ -246,7 +246,7 @@ export class RealtimeLLM {
     } catch (error) {
       console.error(`[${new Date().toLocaleTimeString()}] ❌ Ошибка:`, error);
     } finally {
-      this.isSpeaking = false;
+      //this.isSpeaking = false;
     }
   }
 
