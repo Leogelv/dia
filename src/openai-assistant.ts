@@ -1,17 +1,10 @@
 import OpenAI from 'openai';
-import { YandexSpeechRecognition } from './yandex-speechkit';
 
 export class OpenAIAssistant {
   private openai: OpenAI;
   private assistantId: string;
   private thread: any = null;
-  private recognition: YandexSpeechRecognition;
-  private isListening: boolean = false;
-  private transcriptBuffer: string[] = [];
-  private lastUpdateTime: number = Date.now();
-  private readonly UPDATE_INTERVAL = 0.5 * 60 * 1000; // 5 минут
   private fileId: string | null = null;
-  private updateTimer: NodeJS.Timer | null = null;
 
   constructor(apiKey: string, assistantId: string) {
     this.openai = new OpenAI({
@@ -19,60 +12,21 @@ export class OpenAIAssistant {
       dangerouslyAllowBrowser: true
     });
     this.assistantId = assistantId;
-    
-    this.recognition = new YandexSpeechRecognition(
-      import.meta.env.VITE_YANDEX_API_KEY
-    );
-
-    this.recognition.onResult(async (text) => {
-      console.log('🗣 Распознанный текст:', text);
-      
-      // Добавляем текст в буфер
-      await this.checkAndUpdateContext(text);
-      
-      const keywords = ['ассистент', 'assistant'];
-      const hasKeyword = keywords.some(keyword => text.toLowerCase().includes(keyword));
-      
-      if (hasKeyword) {
-        await this.processVoiceCommand(text);
-      }
-    });
-
-    this.recognition.onError((error) => {
-      console.error('❌ Ошибка распознавания речи:', error);
-    });
   }
 
-  private async checkAndUpdateContext(text: string) {
-    this.transcriptBuffer.push(text);
-    console.log('📝 Добавлен текст в буфер, размер:', this.transcriptBuffer.length);
-
-    const now = Date.now();
-    const timeSinceLastUpdate = now - this.lastUpdateTime;
-    console.log(`⏱ Время с последнего обновления: ${Math.round(timeSinceLastUpdate / 1000)}с`);
-
-    if (timeSinceLastUpdate >= this.UPDATE_INTERVAL) {
-      console.log('⏰ Обновляем контекст...');
-      await this.updateTranscriptFile();
-      this.lastUpdateTime = now;
-      // Очищаем буфер после успешного обновления
-      this.transcriptBuffer = [];
-    }
-  }
-
-  private async updateTranscriptFile() {
+  async updateTranscriptFile(transcriptBuffer: string[]) {
     try {
-      if (this.transcriptBuffer.length === 0) {
+      if (transcriptBuffer.length === 0) {
         console.log('📝 Буфер пуст, пропускаем обновление');
         return;
       }
 
-      const fullTranscript = this.transcriptBuffer.join('\n');
+      const fullTranscript = transcriptBuffer.join('\n');
       console.log('📝 Создаем новый файл транскрипции:', fullTranscript);
       
       const vectorStoreId = import.meta.env.VITE_OPENAI_VECTOR_STORE;
       
-      // Создаем файлРаспознано
+      // Создаем файл
       const blob = new Blob([fullTranscript], { type: 'text/plain' });
       const formData = new FormData();
       formData.append('purpose', 'file-search');
@@ -119,43 +73,6 @@ export class OpenAIAssistant {
     }
   }
 
-  public async startListening() {
-    if (!this.isListening) {
-      try {
-        await this.recognition.start();
-        this.isListening = true;
-        console.log('✅ Распознавание речи запущено');
-        
-        // Запускаем таймер обновления контекста
-        this.updateTimer = setInterval(async () => {
-          if (this.transcriptBuffer.length > 0) {
-            await this.updateTranscriptFile();
-            this.lastUpdateTime = Date.now();
-          }
-        }, this.UPDATE_INTERVAL);
-        
-      } catch (error) {
-        console.error('❌ Ошибка при запуске распознавания:', error);
-        this.isListening = false;
-        throw error;
-      }
-    }
-  }
-
-  public stopListening() {
-    if (this.isListening) {
-      this.recognition.stop();
-      this.isListening = false;
-      
-      if (this.updateTimer) {
-        clearInterval(this.updateTimer);
-        this.updateTimer = null;
-      }
-      
-      console.log('✅ Распознавание речи остановлено');
-    }
-  }
-
   async initialize() {
     if (!this.thread) {
       this.thread = await this.openai.beta.threads.create();
@@ -164,8 +81,8 @@ export class OpenAIAssistant {
   }
 
   private cleanText(text: string): string {
-    // Удаляем ссылки на документы, например, 【4:0†source】
-    return text.replace(/【\d+:\d+†source】/g, '').trim();
+    // Удаляем ссылки на документы, например 【4:0†transcript.txt】
+    return text.replace(/【\d+:\d+†[^】]+】/g, '').trim();
   }
 
   async *streamResponse(message: string) {
@@ -205,6 +122,7 @@ export class OpenAIAssistant {
         // Возвращаем текст из новых сообщений
         for (const message of newMessages) {
           if (message.role === 'assistant' && message.content[0]?.type === 'text') {
+            // Очищаем текст от ссылок на документы перед отправкой
             const cleanText = this.cleanText(message.content[0].text.value);
             console.log('🤖 Ответ от ассистента:', cleanText);
             
@@ -239,4 +157,4 @@ export class OpenAIAssistant {
       }
     }
   }
-} 
+}

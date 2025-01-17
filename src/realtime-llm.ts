@@ -1,28 +1,32 @@
 import OpenAI from 'openai';
-
 import { OpenAIAssistant } from './openai-assistant';
 import { TaskType } from "@heygen/streaming-avatar";
+import { WebSocketService } from './services/WebSocketService';
 
-interface Window {
-  webkitSpeechRecognition: any;
-  avatar: any;
+declare global {
+  interface Window {
+    avatar: {
+      speak: (params: { text: string, task_type: TaskType }) => Promise<void>;
+      on: (event: string, callback: () => void) => void;
+    };
+  }
 }
 
 export class RealtimeLLM {
   private openai: OpenAI;
   private assistant: OpenAIAssistant;
-  private recognition: any;
+  private webSocket: WebSocketService;
   private isListening: boolean = false;
   private isSpeaking: boolean = false;
   private transcriptBuffer: string[] = [];
-
   private lastUpdateTime: number = Date.now();
-
-  private readonly UPDATE_INTERVAL = 3 * 60 * 1000; // 5 минут
-
-  private fileId: string | null = null;
-
+  private readonly UPDATE_INTERVAL = 3 * 60 * 1000; // 3 минуты
   private updateTimer: NodeJS.Timer | null = null;
+
+  // Аудио компоненты
+  private audioContext: AudioContext | null = null;
+  private audioStream: MediaStream | null = null;
+  private processor: ScriptProcessorNode | null = null;
 
   constructor(apiKey: string, assistantId: string) {
     this.openai = new OpenAI({
@@ -30,164 +34,96 @@ export class RealtimeLLM {
       dangerouslyAllowBrowser: true
     });
     this.assistant = new OpenAIAssistant(apiKey, assistantId);
-    this.initSpeechRecognition();
+    this.webSocket = new WebSocketService();
 
     // Слушаем события аватара
-    (window as any).avatar?.on('AVATAR_TALKING_MESSAGE', () => {
+    window.avatar?.on('AVATAR_TALKING_MESSAGE', () => {
       console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Аватар говорит - снижаем чувствительность микрофона`);
-      // Здесь можно добавить логику снижения чувствительности
     });
-
-    // Удаляем старые обработчики speaking_started и speaking_ended
-    
-    // Модифицируем обработку результатов распознавания
-    this.recognition.onresult = async (event: any) => {
-      const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-      console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано1:`, text);
-      // Добавляем текст в буфер
-
-      await this.checkAndUpdateContext(text);
-      
-      // Проверяем на ключевое слово
-      if (text.includes('ассистент') || text.includes('assistant')) {
-        console.log(`[${new Date().toLocaleTimeString()}] 🎯 Обнаружено ключевое слово - начинаем обработку`);
-        await this.handleCommand(text);
-      }
-    };
-
-    this.recognition.onend = () => {
-      console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание остановлено`);
-      // Всегда перезапускаем распознавание
-      setTimeout(() => this.recognition.start(), 100);
-    };
   }
-  
-  private async checkAndUpdateContext(text: string) {
 
-    this.transcriptBuffer.push(text);
-
-    console.log('📝 Добавлен текст в буфер, размер:', this.transcriptBuffer.length);
-
-
-
-    const now = Date.now();
-
-    if (now - this.lastUpdateTime >= this.UPDATE_INTERVAL) {
-
-      console.log('⏰ Обновляем контекст...');
-
-      await this.updateTranscriptFile();
-
-      this.lastUpdateTime = now;
-
-    }
-
-  }
-  private async updateTranscriptFile() {
+  private async initAudio() {
     try {
-      if (this.transcriptBuffer.length === 0) {
-        console.log('📝 Буфер пуст, пропускаем обновление');
-        return;
-      }
-
-      const fullTranscript = this.transcriptBuffer.join('\n');
-      console.log('📝 Создаем новый файл транскрипции:', fullTranscript);
+      // Получаем доступ к микрофону
+      this.audioStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000
+        } 
+      });
       
-      const vectorStoreId = import.meta.env.VITE_OPENAI_VECTOR_STORE;
-      
-      // Создаем файлРаспознано
-      const blob = new Blob([fullTranscript], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('purpose', 'assistants');
-      formData.append('file', blob, 'transcript.txt');
-
-      const response = await fetch('https://api.openai.com/v1/files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.openai.apiKey}`,
-        },
-        body: formData
+      // Создаем AudioContext
+      this.audioContext = new AudioContext({
+        sampleRate: 16000
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Создаем процессор для обработки аудио
+      const source = this.audioContext.createMediaStreamSource(this.audioStream);
+      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      
+      source.connect(this.processor);
+      this.processor.connect(this.audioContext.destination);
 
-      const newFile = await response.json();
-      console.log('✅ Новый файл создан:', newFile.id);
+      // Обработка аудио данных
+      this.processor.onaudioprocess = (e) => {
+        if (!this.webSocket.isConnected) return;
 
-      // Если есть старый файл, удаляем его
-      if (this.fileId) {
-        console.log('🗑️ Удаляем старый файл из vector store:', this.fileId);
-        await this.openai.beta.vectorStores.files.del(
-          vectorStoreId,
-          this.fileId
-        );
-        await this.openai.files.del(this.fileId);
-      }
-
-      // Добавляем новый файл в vector store
-      await this.openai.beta.vectorStores.files.create(
-        vectorStoreId,
-        {
-          file_id: newFile.id
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcmData = new Int16Array(inputData.length);
+        
+        // Конвертация float32 в int16
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
-      );
+        
+        // Отправка аудио данных через WebSocket
+        this.webSocket.sendAudioData(pcmData.buffer);
+      };
 
-      this.fileId = newFile.id;
-      console.log('✅ Контекст успешно обновлен');
+      console.log('🎤 Аудио инициализировано');
     } catch (error) {
-      console.error('❌ Ошибка при обновлении контекста:', error);
+      console.error('❌ Ошибка инициализации аудио:', error);
       throw error;
     }
   }
-  private initSpeechRecognition() {
-    try {
-      if (!(window as any).webkitSpeechRecognition && !(window as any).SpeechRecognition) {
-        console.error('❌ Web Speech API не поддерживается');
-        throw new Error('Web Speech API не поддерживается');
-      }
 
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      
-      this.recognition.lang = 'ru-RU';
-      this.recognition.continuous = true;
-      this.recognition.interimResults = false;
-
-      this.recognition.onstart = () => {
-        console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание запущено`);
-        this.isListening = true;
-      };
-
-      this.recognition.onend = () => {
-        console.log(`[${new Date().toLocaleTimeString()}] 🎤 Распознавание остановлено`);
-        if (this.isListening && !this.isSpeaking) {
-          setTimeout(() => this.recognition.start(), 100);
-        }
-      };
-
-      this.recognition.onresult = async (event: any) => {
-        const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано2:`, text);
-        
-        // Проверяем на ключевое слово
-        if (text.includes('ассистент') || text.includes('assistant')) {
-          console.log(`[${new Date().toLocaleTimeString()}] 🎯 Обнаружено ключевое слово - начинаем обработку`);
-          await this.handleCommand(text);
-        }
-      };
-
-    } catch (error) {
-      console.error('❌ Ошибка инициализации речи:', error);
-      throw error;
+  private cleanupAudio() {
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream = null;
     }
+    
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    this.processor = null;
+  }
+
+  private async checkAndUpdateContext(text: string) {
+    this.transcriptBuffer.push(text);
+    console.log('📝 Добавлен текст в буфер, размер:', this.transcriptBuffer.length);
+
+    const now = Date.now();
+    if (now - this.lastUpdateTime >= this.UPDATE_INTERVAL) {
+      console.log('⏰ Обновляем контекст...');
+      await this.assistant.updateTranscriptFile(this.transcriptBuffer);
+      this.lastUpdateTime = now;
+    }
+  }
+
+  private cleanText(text: string): string {
+    // Удаляем ссылки на документы, например 【8:0†transcript.txt】
+    return text.replace(/【\d+:\d+†[^】]+】/g, '').trim();
   }
 
   private async handleCommand(command: string) {
     try {
       this.isSpeaking = true;
-      const cleanCommand = command.replace(/ассистент|assistant/gi, '').trim();
+      // Очищаем команду от всех возможных ключевых слов
+      const cleanCommand = command.replace(/дия|диа|dia|diya|ассистент|assistant/gi, '').trim();
       
       console.log(`[${new Date().toLocaleTimeString()}] 📝 Обрабатываем команду:`, cleanCommand);
 
@@ -196,7 +132,7 @@ export class RealtimeLLM {
         messages: [
           {
             role: "system",
-            content: "Ты дружелюбный ассистент. Отвечай кратко, без смайликов и спецсимволов, на языке запроса."
+            content: "Ты дружелюбная ассистентка. Твой пол - женский. Отвечай кратко, без смайликов и спецсимволов, на языке запроса."
           },
           { role: "user", content: cleanCommand }
         ],
@@ -240,10 +176,9 @@ export class RealtimeLLM {
         // Озвучиваем промежуточную фразу целиком
         console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем промежуточную фразу целиком`);
         await window.avatar?.speak({
-          text: waitingResponse,
+          text: this.cleanText(waitingResponse),
           task_type: TaskType.REPEAT
         });
-        console.log(`[${new Date().toLocaleTimeString()}] ✅ Промежуточная фраза озвучена`);
         
         // Буфер для накопления текста
         let textBuffer = '';
@@ -263,7 +198,7 @@ export class RealtimeLLM {
             if (completePhrase) {
               console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем фразу:`, completePhrase);
               lastSpeakPromise = window.avatar?.speak({
-                text: completePhrase,
+                text: this.cleanText(completePhrase),
                 task_type: TaskType.REPEAT
               });
             }
@@ -279,13 +214,13 @@ export class RealtimeLLM {
         if (textBuffer.trim()) {
           console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем последнюю фразу:`, textBuffer);
           await window.avatar?.speak({
-            text: textBuffer.trim(),
+            text: this.cleanText(textBuffer.trim()),
             task_type: TaskType.REPEAT
           });
         }
       } else {
         // Простой ответ - разбиваем по точкам и озвучиваем по частям
-        const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смог сформулировать ответ";
+        const simpleResponse = response.choices[0]?.message?.content || "Извини, я не смогла сформулировать ответ";
         console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Простой ответ:`, simpleResponse);
         
         // Разбиваем на фразы по точкам
@@ -297,7 +232,7 @@ export class RealtimeLLM {
           if (cleanPhrase) {
             console.log(`[${new Date().toLocaleTimeString()}] 🗣️ Озвучиваем фразу:`, cleanPhrase);
             lastSpeakPromise = window.avatar?.speak({
-              text: cleanPhrase,
+              text: this.cleanText(cleanPhrase),
               task_type: TaskType.REPEAT
             });
             // Ждем небольшую паузу между фразами
@@ -321,20 +256,15 @@ export class RealtimeLLM {
       messages: [
         {
           role: "system",
-          content: "ты типа развлекалка: генерируешь одно или два длинных предложение для промежуточного ответа на чистом языке запроса (русский/английский/казахский) без смайликов и специальных символов пока юзер ждет ответ от openai assistant."
+          content: "Генерируй одно предложение для промежуточного ответа на языке запроса без смайликов. Твой пол - женский."
         },
-        { 
-          role: "user", 
-          content: `Сгенерируй одно предложение для промежуточной фразы для запроса: "${query}"`
-        }
+        { role: "user", content: `Сгенерируй промежуточную фразу для: "${query}"` }
       ],
       temperature: 0.7,
       max_tokens: 150
     });
 
-    const waitingResponse = response.choices[0]?.message?.content?.trim() || "Сейчас посмотрю";
-    console.log(`[${new Date().toLocaleTimeString()}] 💭 Сгенерирована промежуточная фраза (${waitingResponse.length} символов):`, waitingResponse);
-    return waitingResponse;
+    return response.choices[0]?.message?.content?.trim() || "Сейчас посмотрю";
   }
 
   async initialize() {
@@ -344,29 +274,68 @@ export class RealtimeLLM {
 
   startListening() {
     if (!this.isListening) {
-      this.recognition.start();
+      this.isListening = true;
+      
+      // Подключаемся к WebSocket и инициализируем аудио
+      this.webSocket.connect()
+        .then(() => this.initAudio())
+        .then(() => {
+          console.log('✅ Распознавание речи запущено');
+          
+          // Настраиваем обработчик сообщений
+          this.webSocket.onMessage(async (response) => {
+            if (response.type === 'final') {
+              const text = response.data.text.toLowerCase();
+              console.log(`[${new Date().toLocaleTimeString()}] 🗣 Распознано:`, text);
+              
+              await this.checkAndUpdateContext(text);
+              
+              // Проверяем ключевые слова на разных языках
+              if (text.includes('дия') || 
+                  text.includes('диа') || 
+                  text.includes('dia') || 
+                  text.includes('diya') ||
+                  text.includes('ассистент') || 
+                  text.includes('assistant')) {
+                console.log(`[${new Date().toLocaleTimeString()}] 🎯 Обнаружено ключевое слово:`, text);
+                await this.handleCommand(text);
+              }
+            }
+          });
+
+          // Обработчик закрытия соединения
+          this.webSocket.onClose(() => {
+            console.log('🔌 WebSocket закрыт - останавливаем распознавание');
+            this.stopListening();
+          });
+        })
+        .catch(error => {
+          console.error('❌ Ошибка запуска распознавания:', error);
+          this.isListening = false;
+        });
+
+      // Запускаем таймер обновления контекста
       this.updateTimer = setInterval(async () => {
-
-          if (this.transcriptBuffer.length > 0) {
-
-            await this.updateTranscriptFile();
-
-            this.lastUpdateTime = Date.now();
-
-          }
-
-        }, this.UPDATE_INTERVAL);
+        if (this.transcriptBuffer.length > 0) {
+          await this.assistant.updateTranscriptFile(this.transcriptBuffer);
+          this.lastUpdateTime = Date.now();
+        }
+      }, this.UPDATE_INTERVAL);
     }
   }
 
   stopListening() {
     if (this.isListening) {
-      this.recognition.stop();
       this.isListening = false;
+      this.cleanupAudio();
+      this.webSocket.close();
+      
       if (this.updateTimer) {
         clearInterval(this.updateTimer);
         this.updateTimer = null;
       }
+
+      console.log('✅ Распознавание речи остановлено');
     }
   }
 
