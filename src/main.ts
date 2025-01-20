@@ -113,7 +113,7 @@ export async function initializeAvatarSession() {
           avatarName: "default",
           voice: {
             voiceId: "bc69c9589d6747028dc5ec4aec2b43c3",
-            rate: 1.3,
+            rate: 1,
             emotion: VoiceEmotion.EXCITED
           },
           disableIdleTimeout: true
